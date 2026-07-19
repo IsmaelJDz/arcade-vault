@@ -8,16 +8,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Uses **Next.js 16.2.10** with **React 19** and **Tailwind CSS v4** — all newer than most training data and with breaking changes. Before writing framework/routing/config code, read the relevant guide in `node_modules/next/dist/docs/` (`01-app`, `03-architecture`). Do not assume APIs from older Next.js.
 
-## Commands
-
-```bash
-npm run dev     # dev server (Turbopack)
-npm run build   # production build
-npm run start   # serve production build
-npm run lint    # eslint (flat config, eslint.config.mjs)
-```
-
 No test runner is configured yet.
+
+## Skills
+
+Usa siempre /frontend-design para diseñar el frontend
 
 ## Architecture
 
