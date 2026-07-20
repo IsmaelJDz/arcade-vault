@@ -18,11 +18,13 @@ export default function GamePlayer({
 
   const [score, setScore] = useState(0);
   const [lives] = useState(3);
-  const [level, setLevel] = useState(1);
   const [paused, setPaused] = useState(false);
   const [over, setOver] = useState(false);
   const [name, setName] = useState(user ? user.name : "INVITADO");
   const [saved, setSaved] = useState(false);
+
+  // Nivel derivado del score (sube uno cada 2500 puntos): valor puro, sin estado.
+  const level = 1 + Math.floor(score / 2500);
 
   // Ticker de puntos falso (simulación visual). Solo en cliente, dentro del
   // effect: nunca en el cuerpo del render (evita mismatch de SSR).
@@ -35,16 +37,11 @@ export default function GamePlayer({
     return () => clearInterval(t);
   }, [over, paused]);
 
-  useEffect(() => {
-    if (score > 0 && score % 2500 < 100) setLevel((l) => l + 1);
-  }, [score]);
-
   if (!game) notFound();
 
   const endGame = () => setOver(true);
   const restart = () => {
     setScore(0);
-    setLevel(1);
     setPaused(false);
     setOver(false);
     setSaved(false);
