@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useEffect, useState } from "react";
+import { createContext, useContext, useSyncExternalStore } from "react";
 
 export interface User {
   name: string;
@@ -24,38 +24,81 @@ const SessionContext = createContext<SessionValue | null>(null);
 
 const USER_KEY = "av_user";
 const SCORES_KEY = "av_scores";
+// Evento propio para notificar cambios en la misma pestaña (el evento nativo
+// "storage" solo dispara entre pestañas distintas).
+const CHANGE_EVT = "av_session_change";
+
+// --- Store externo de usuario (localStorage) leído con useSyncExternalStore ---
+// getSnapshot debe devolver una referencia estable si el valor no cambió, así
+// que cacheamos el último raw string y su objeto parseado.
+let userCache: { raw: string | null; value: User | null } = {
+  raw: null,
+  value: null,
+};
+
+function getUserSnapshot(): User | null {
+  let raw: string | null = null;
+  try {
+    raw = localStorage.getItem(USER_KEY);
+  } catch {
+    raw = null; // localStorage no disponible (modo privado): sesión en memoria.
+  }
+  if (raw !== userCache.raw) {
+    let value: User | null = null;
+    if (raw) {
+      try {
+        value = JSON.parse(raw) as User;
+      } catch {
+        value = null;
+      }
+    }
+    userCache = { raw, value };
+  }
+  return userCache.value;
+}
+
+// En SSR / primer render de hidratación no hay localStorage: sin usuario.
+function getServerUserSnapshot(): User | null {
+  return null;
+}
+
+function subscribe(cb: () => void): () => void {
+  window.addEventListener("storage", cb);
+  window.addEventListener(CHANGE_EVT, cb);
+  return () => {
+    window.removeEventListener("storage", cb);
+    window.removeEventListener(CHANGE_EVT, cb);
+  };
+}
+
+function notify() {
+  window.dispatchEvent(new Event(CHANGE_EVT));
+}
 
 export function SessionProvider({ children }: { children: React.ReactNode }) {
-  // Empieza deslogueado en SSR; localStorage se lee tras montar para evitar
-  // mismatch de hidratación.
-  const [user, setUser] = useState<User | null>(null);
-
-  useEffect(() => {
-    try {
-      const raw = localStorage.getItem(USER_KEY);
-      if (raw) setUser(JSON.parse(raw) as User);
-    } catch {
-      // localStorage no disponible (modo privado): sesión solo en memoria.
-    }
-  }, []);
+  const user = useSyncExternalStore(
+    subscribe,
+    getUserSnapshot,
+    getServerUserSnapshot
+  );
 
   const login = (u: User | null) => {
-    setUser(u);
     try {
       if (u) localStorage.setItem(USER_KEY, JSON.stringify(u));
       else localStorage.removeItem(USER_KEY);
     } catch {
-      // ignora: la sesión sigue en memoria.
+      // ignora: sin persistencia si localStorage falla.
     }
+    notify();
   };
 
   const signOut = () => {
-    setUser(null);
     try {
       localStorage.removeItem(USER_KEY);
     } catch {
       // ignora.
     }
+    notify();
   };
 
   const saveScore = (entry: Omit<ScoreEntry, "at">) => {
