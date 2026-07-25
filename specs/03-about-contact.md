@@ -1,6 +1,6 @@
 # SPEC 03 — About page + envío de correo de contacto (Resend)
 
-> **Estado:** Aprobado
+> **Estado:** Implementado
 > **Depende de:** `02-home-landing.md`
 > **Fecha:** 2026-07-25
 > **Objetivo:** Portar la pantalla About/Contacto del mockup `home-about` como nueva ruta `/about`, agregar el link "Acerca de" al Nav, y conectar el formulario de contacto a un envío de correo real vía Resend.
