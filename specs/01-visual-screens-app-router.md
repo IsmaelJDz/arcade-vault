@@ -141,49 +141,49 @@ Notas de conversión (aplican a todos los pasos de pantalla):
 
 **Build y navegación**
 
-- [ ] `npm run build` compila sin errores de TypeScript.
-- [ ] `npm run lint` pasa sin errores.
-- [ ] El Nav y el footer aparecen en las cinco rutas (`/`, `/game/[id]`, `/play/[id]`, `/hall`, `/login`).
-- [ ] El enlace activo del Nav se resalta según la ruta actual (Biblioteca activa también en `/game/*` y `/play/*`).
-- [ ] El botón atrás/adelante del navegador cambia de pantalla correctamente.
+- [x] `npm run build` compila sin errores de TypeScript.
+- [x] `npm run lint` pasa sin errores.
+- [x] El Nav y el footer aparecen en las cinco rutas (`/`, `/game/[id]`, `/play/[id]`, `/hall`, `/login`).
+- [x] El enlace activo del Nav se resalta según la ruta actual (Biblioteca activa también en `/game/*` y `/play/*`).
+- [x] El botón atrás/adelante del navegador cambia de pantalla correctamente.
 
 **Biblioteca (`/`)**
 
-- [ ] Se muestran las 8 tarjetas de `GAMES` en el grid.
-- [ ] Escribir en el buscador filtra las tarjetas por título en tiempo real.
-- [ ] Clic en un chip de categoría filtra el grid; "TODOS" muestra todo.
-- [ ] Sin resultados muestra el bloque "NO HAY RESULTADOS".
-- [ ] Clic en una tarjeta navega a `/game/[id]` de ese juego.
+- [x] Se muestran las 8 tarjetas de `GAMES` en el grid.
+- [x] Escribir en el buscador filtra las tarjetas por título en tiempo real.
+- [x] Clic en un chip de categoría filtra el grid; "TODOS" muestra todo.
+- [x] Sin resultados muestra el bloque "NO HAY RESULTADOS".
+- [x] Clic en una tarjeta navega a `/game/[id]` de ese juego.
 
 **Detalle (`/game/[id]`)**
 
-- [ ] `/game/caida` renderiza portada, descripción larga, tags y stat-strip del juego.
-- [ ] El leaderboard lateral muestra filas de `seededScores`.
-- [ ] "JUGAR AHORA" navega a `/play/[id]`; "VOLVER AL VAULT" navega a `/`.
-- [ ] Un `id` inexistente (p. ej. `/game/xxx`) muestra la página `notFound()`.
+- [x] `/game/caida` renderiza portada, descripción larga, tags y stat-strip del juego.
+- [x] El leaderboard lateral muestra filas de `seededScores`.
+- [x] "JUGAR AHORA" navega a `/play/[id]`; "VOLVER AL VAULT" navega a `/`.
+- [x] Un `id` inexistente (p. ej. `/game/xxx`) muestra la página `notFound()`.
 
 **Reproductor (`/play/[id]`)**
 
-- [ ] La puntuación del HUD sube sola mientras no está en pausa ni terminado.
-- [ ] "PAUSA" detiene el ticker y muestra el overlay "EN PAUSA"; "REANUDAR" lo reanuda.
-- [ ] "FIN" abre el modal de FIN con la puntuación final.
-- [ ] Guardar en el modal persiste en `av_scores` y muestra el toast "PUNTUACIÓN GUARDADA".
-- [ ] "JUGAR DE NUEVO" reinicia el estado; "SALIR" vuelve al detalle.
+- [x] La puntuación del HUD sube sola mientras no está en pausa ni terminado.
+- [x] "PAUSA" detiene el ticker y muestra el overlay "EN PAUSA"; "REANUDAR" lo reanuda.
+- [x] "FIN" abre el modal de FIN con la puntuación final.
+- [x] Guardar en el modal persiste en `av_scores` y muestra el toast "PUNTUACIÓN GUARDADA".
+- [x] "JUGAR DE NUEVO" reinicia el estado; "SALIR" vuelve al detalle.
 
 **Salón de la Fama (`/hall`)**
 
-- [ ] Cambiar de tab actualiza podio y tabla al juego seleccionado.
-- [ ] El podio muestra los puestos 01/02/03 con oro/plata/bronce.
-- [ ] Con sesión iniciada aparece la fila amarilla "TU MEJOR MARCA".
-- [ ] Sin sesión, esa fila no aparece.
+- [x] Cambiar de tab actualiza podio y tabla al juego seleccionado.
+- [x] El podio muestra los puestos 01/02/03 con oro/plata/bronce.
+- [x] Con sesión iniciada aparece la fila amarilla "TU MEJOR MARCA".
+- [x] Sin sesión, esa fila no aparece.
 
 **Auth (`/login`) y sesión**
 
-- [ ] Enviar el formulario inicia sesión y redirige a `/`.
-- [ ] Tras login, el Nav muestra el nombre del usuario en vez de "Iniciar Sesión".
-- [ ] "JUGAR COMO INVITADO" redirige a `/` sin usuario logueado.
-- [ ] El usuario logueado sobrevive a una recarga de página (persistido en `av_user`).
-- [ ] Clic en el nombre del usuario en el Nav cierra la sesión.
+- [x] Enviar el formulario inicia sesión y redirige a `/`.
+- [x] Tras login, el Nav muestra el nombre del usuario en vez de "Iniciar Sesión".
+- [x] "JUGAR COMO INVITADO" redirige a `/` sin usuario logueado.
+- [x] El usuario logueado sobrevive a una recarga de página (persistido en `av_user`).
+- [x] Clic en el nombre del usuario en el Nav cierra la sesión.
 
 ---
 
