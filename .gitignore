@@ -39,3 +39,11 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# claude
+.playwright-mcp/*
+!.playwright-mcp/.gitkeep
+
+
+.playwright-screenshots/*
+!.playwright-screenshots/.gitkeep
