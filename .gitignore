@@ -42,5 +42,9 @@ next-env.d.ts
 
 # claude
 /specs
-.playwright-mcp
-.playwright-screenshots
+.playwright-mcp/*
+!.playwright-mcp/.gitkeep
+
+
+.playwright-screenshots/*
+!.playwright-screenshots/.gitkeep
