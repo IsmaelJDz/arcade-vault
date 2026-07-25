@@ -1,6 +1,6 @@
 # SPEC 02 — Home landing + reubicación de Biblioteca a `/games`
 
-> **Estado:** Aprobado
+> **Estado:** Implementado
 > **Depende de:** `01-visual-screens-app-router.md`
 > **Fecha:** 2026-07-25
 > **Objetivo:** Portar el Home del mockup `home-about` como nueva ruta `/`, reubicar la Biblioteca actual en `/games` y actualizar el Nav en consecuencia (la pantalla About queda fuera de esta spec).
@@ -71,35 +71,35 @@ Notas de conversión (igual que spec 01): componentes con estado/eventos llevan 
 
 **Ruteo y Nav**
 
-- [ ] `npm run build` compila sin errores de TypeScript.
-- [ ] `npm run lint` pasa sin errores.
-- [ ] `/games` renderiza la Biblioteca (grid, buscador, chips, tarjetas) igual que antes de la reubicación.
-- [ ] `/` renderiza el nuevo Home.
-- [ ] El link "Inicio" del Nav está activo solo en `/`.
-- [ ] El link "Biblioteca" del Nav está activo en `/games`, `/game/*` y `/play/*`.
-- [ ] Ambos comportamientos se replican en el panel móvil.
+- [x] `npm run build` compila sin errores de TypeScript.
+- [x] `npm run lint` pasa sin errores.
+- [x] `/games` renderiza la Biblioteca (grid, buscador, chips, tarjetas) igual que antes de la reubicación.
+- [x] `/` renderiza el nuevo Home.
+- [x] El link "Inicio" del Nav está activo solo en `/`.
+- [x] El link "Biblioteca" del Nav está activo en `/games`, `/game/*` y `/play/*`.
+- [x] Ambos comportamientos se replican en el panel móvil.
 
 **Redirects**
 
-- [ ] "VOLVER AL VAULT" en `/game/[id]` navega a `/games`.
-- [ ] "SALIR" en `/play/[id]` navega a `/games`.
-- [ ] El botón "volver" en `/hall` navega a `/games`.
-- [ ] Enviar el formulario de login navega a `/games`.
-- [ ] "JUGAR COMO INVITADO" navega a `/games`.
+- [x] "VOLVER AL VAULT" en `/game/[id]` navega a `/games`.
+- [x] "SALIR" en `/play/[id]` navega a `/games`.
+- [x] El botón "volver" en `/hall` navega a `/games`.
+- [x] Enviar el formulario de login navega a `/games`.
+- [x] "JUGAR COMO INVITADO" navega a `/games`.
 
 **Home (`/`)**
 
-- [ ] El hero muestra título, subtítulo, silhouettes decorativas y ambos CTAs.
-- [ ] "EXPLORAR JUEGOS" navega a `/games`; "CREAR CUENTA" navega a `/login`.
-- [ ] La sección de features muestra las 4 tarjetas.
-- [ ] El mini-rail muestra 6 juegos de `GAMES`; clic en una mini-card navega a `/game/[id]` de ese juego.
-- [ ] "VER TODOS LOS JUEGOS" navega a `/games`.
-- [ ] La sección de stats muestra los 3 bloques estáticos.
-- [ ] La sección "Actividad en vivo" muestra el ticker de puntuaciones y el top de jugadores (datos hardcodeados).
-- [ ] "VER SALÓN" navega a `/hall`.
-- [ ] La sección de precios muestra el plan único y el FAQ; "EMPEZAR GRATIS" navega a `/login`.
-- [ ] El CTA final navega a `/games`.
-- [ ] Las secciones con clase `.reveal` aparecen (fade/translate) al hacer scroll hasta ellas.
+- [x] El hero muestra título, subtítulo, silhouettes decorativas y ambos CTAs.
+- [x] "EXPLORAR JUEGOS" navega a `/games`; "CREAR CUENTA" navega a `/login`.
+- [x] La sección de features muestra las 4 tarjetas.
+- [x] El mini-rail muestra 6 juegos de `GAMES`; clic en una mini-card navega a `/game/[id]` de ese juego.
+- [x] "VER TODOS LOS JUEGOS" navega a `/games`.
+- [x] La sección de stats muestra los 3 bloques estáticos.
+- [x] La sección "Actividad en vivo" muestra el ticker de puntuaciones y el top de jugadores (datos hardcodeados).
+- [x] "VER SALÓN" navega a `/hall`.
+- [x] La sección de precios muestra el plan único y el FAQ; "EMPEZAR GRATIS" navega a `/login`.
+- [x] El CTA final navega a `/games`.
+- [x] Las secciones con clase `.reveal` aparecen (fade/translate) al hacer scroll hasta ellas.
 
 ---
 
