@@ -72,6 +72,20 @@ function AsteroidsPlayer({ game }: { game: Game }) {
         <CrtBottom title={game.title} />
       </div>
 
+      <div className="game-controls">
+        <div className="controls-legend">
+          <span className="keys">
+            <kbd>◄</kbd>
+            <kbd>►</kbd> ROTAR
+            <kbd>▲</kbd> PROPULSAR
+            <kbd>ESPACIO</kbd> DISPARAR
+          </span>
+        </div>
+        <div className="keyboard-notice">
+          ⌨ ESTE JUEGO REQUIERE TECLADO — JUÉGALO EN UNA COMPUTADORA
+        </div>
+      </div>
+
       {over && (
         <EndModal
           score={score}
