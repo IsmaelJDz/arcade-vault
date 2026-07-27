@@ -596,8 +596,14 @@ export function initAsteroids(
     },
     setPaused(p: boolean) {
       paused = p;
-      // Al reanudar, resetea el reloj para no acumular tiempo (evita el salto).
-      if (!p) lastTime = null;
+      if (p) {
+        // Descarta el input en buffer para no disparar/moverse al reanudar.
+        for (const k in justPressed) justPressed[k] = false;
+        for (const k in keys) keys[k] = false;
+      } else {
+        // Al reanudar, resetea el reloj para no acumular tiempo (evita el salto).
+        lastTime = null;
+      }
     },
     restart() {
       initGame();
