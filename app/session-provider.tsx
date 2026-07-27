@@ -1,9 +1,13 @@
 "use client";
 
-import { createContext, useContext, useSyncExternalStore } from "react";
+import type { AuthError, Session, User as SupabaseUser } from "@supabase/supabase-js";
+import { createContext, useContext, useEffect, useMemo, useState } from "react";
+
+import { createClient } from "@/lib/supabase/client";
 
 export interface User {
-  name: string;
+  name: string; // = user_metadata.display_name
+  email: string;
 }
 
 export interface ScoreEntry {
@@ -13,99 +17,106 @@ export interface ScoreEntry {
   at: number;
 }
 
+export type AuthResult = { ok: true } | { ok: false; error: string };
+
 interface SessionValue {
   user: User | null;
-  login: (u: User | null) => void;
-  signOut: () => void;
+  loading: boolean; // true mientras se resuelve la sesión inicial
+  signUp: (email: string, password: string, name: string) => Promise<AuthResult>;
+  signIn: (email: string, password: string) => Promise<AuthResult>;
+  signOut: () => Promise<void>;
   saveScore: (e: Omit<ScoreEntry, "at">) => void;
+  /** @deprecated temporal — se elimina en el Paso 7 (login real en /login). */
+  login: (u: { name: string } | null) => void;
 }
 
 const SessionContext = createContext<SessionValue | null>(null);
 
-const USER_KEY = "av_user";
 const SCORES_KEY = "av_scores";
-// Evento propio para notificar cambios en la misma pestaña (el evento nativo
-// "storage" solo dispara entre pestañas distintas).
-const CHANGE_EVT = "av_session_change";
 
-// --- Store externo de usuario (localStorage) leído con useSyncExternalStore ---
-// getSnapshot debe devolver una referencia estable si el valor no cambió, así
-// que cacheamos el último raw string y su objeto parseado.
-let userCache: { raw: string | null; value: User | null } = {
-  raw: null,
-  value: null,
-};
+// Deriva el usuario de la app desde el usuario de Supabase Auth.
+function toUser(su: SupabaseUser | null): User | null {
+  if (!su) return null;
+  const displayName =
+    (su.user_metadata?.display_name as string | undefined) ?? su.email?.split("@")[0] ?? "PLAYER1";
+  return { name: displayName.toUpperCase().slice(0, 10), email: su.email ?? "" };
+}
 
-function getUserSnapshot(): User | null {
-  let raw: string | null = null;
-  try {
-    raw = localStorage.getItem(USER_KEY);
-  } catch {
-    raw = null; // localStorage no disponible (modo privado): sesión en memoria.
+// Traduce errores de Supabase Auth a mensajes en español para la UI.
+function mapError(error: AuthError): string {
+  const code = error.code ?? "";
+  if (code === "invalid_credentials" || /invalid login/i.test(error.message)) {
+    return "Correo o contraseña incorrectos.";
   }
-  if (raw !== userCache.raw) {
-    let value: User | null = null;
-    if (raw) {
-      try {
-        value = JSON.parse(raw) as User;
-      } catch {
-        value = null;
-      }
-    }
-    userCache = { raw, value };
+  if (code === "email_not_confirmed" || /not confirmed/i.test(error.message)) {
+    return "Debes confirmar tu correo antes de entrar. Revisa tu bandeja.";
   }
-  return userCache.value;
-}
-
-// En SSR / primer render de hidratación no hay localStorage: sin usuario.
-function getServerUserSnapshot(): User | null {
-  return null;
-}
-
-function subscribe(cb: () => void): () => void {
-  window.addEventListener("storage", cb);
-  window.addEventListener(CHANGE_EVT, cb);
-  return () => {
-    window.removeEventListener("storage", cb);
-    window.removeEventListener(CHANGE_EVT, cb);
-  };
-}
-
-function notify() {
-  window.dispatchEvent(new Event(CHANGE_EVT));
+  if (code === "user_already_exists" || /already registered/i.test(error.message)) {
+    return "Ya existe una cuenta con ese correo.";
+  }
+  if (code === "weak_password" || /password/i.test(error.message)) {
+    return "La contraseña es demasiado débil (mínimo 6 caracteres).";
+  }
+  return error.message || "Algo salió mal. Inténtalo de nuevo.";
 }
 
 export function SessionProvider({ children }: { children: React.ReactNode }) {
-  const user = useSyncExternalStore(
-    subscribe,
-    getUserSnapshot,
-    getServerUserSnapshot
-  );
+  const supabase = useMemo(() => createClient(), []);
+  const [user, setUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState(true);
 
-  const login = (u: User | null) => {
-    try {
-      if (u) localStorage.setItem(USER_KEY, JSON.stringify(u));
-      else localStorage.removeItem(USER_KEY);
-    } catch {
-      // ignora: sin persistencia si localStorage falla.
-    }
-    notify();
+  useEffect(() => {
+    let active = true;
+
+    // Sesión inicial (resuelve el estado de carga tras montar).
+    supabase.auth.getUser().then(({ data }) => {
+      if (!active) return;
+      setUser(toUser(data.user));
+      setLoading(false);
+    });
+
+    // Cambios posteriores (login, logout, refresh de token).
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session: Session | null) => {
+      setUser(toUser(session?.user ?? null));
+      setLoading(false);
+    });
+
+    return () => {
+      active = false;
+      subscription.unsubscribe();
+    };
+  }, [supabase]);
+
+  const signUp = async (email: string, password: string, name: string): Promise<AuthResult> => {
+    const { error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: { display_name: name.toUpperCase().slice(0, 10) },
+        emailRedirectTo:
+          typeof window !== "undefined" ? `${window.location.origin}/auth/callback` : undefined,
+      },
+    });
+    return error ? { ok: false, error: mapError(error) } : { ok: true };
   };
 
-  const signOut = () => {
-    try {
-      localStorage.removeItem(USER_KEY);
-    } catch {
-      // ignora.
-    }
-    notify();
+  const signIn = async (email: string, password: string): Promise<AuthResult> => {
+    const { error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+    return error ? { ok: false, error: mapError(error) } : { ok: true };
+  };
+
+  const signOut = async () => {
+    await supabase.auth.signOut();
   };
 
   const saveScore = (entry: Omit<ScoreEntry, "at">) => {
     try {
-      const all = JSON.parse(
-        localStorage.getItem(SCORES_KEY) || "[]"
-      ) as ScoreEntry[];
+      const all = JSON.parse(localStorage.getItem(SCORES_KEY) || "[]") as ScoreEntry[];
       all.push({ ...entry, at: Date.now() });
       localStorage.setItem(SCORES_KEY, JSON.stringify(all));
     } catch {
@@ -113,8 +124,13 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  // Shim temporal: /login todavía llama a login() hasta el Paso 7.
+  const login = (_u: { name: string } | null) => {
+    // no-op — el login real se conecta en el Paso 7.
+  };
+
   return (
-    <SessionContext.Provider value={{ user, login, signOut, saveScore }}>
+    <SessionContext.Provider value={{ user, loading, signUp, signIn, signOut, saveScore, login }}>
       {children}
     </SessionContext.Provider>
   );
