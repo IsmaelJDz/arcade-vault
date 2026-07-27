@@ -93,7 +93,7 @@ function AsteroidsPlayer({ game }: { game: Game }) {
           onName={setName}
           saved={saved}
           onSave={() => {
-            saveScore({ game: game.id, score, name });
+            void saveScore({ game: game.id, score });
             setSaved(true);
           }}
           onRestart={restart}
@@ -168,7 +168,7 @@ function SimulatedPlayer({ game }: { game: Game }) {
           onName={setName}
           saved={saved}
           onSave={() => {
-            saveScore({ game: game.id, score, name });
+            void saveScore({ game: game.id, score });
             setSaved(true);
           }}
           onRestart={restart}

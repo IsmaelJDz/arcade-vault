@@ -10,14 +10,12 @@ export interface User {
   email: string;
 }
 
-export interface ScoreEntry {
-  game: string;
-  score: number;
-  name: string;
-  at: number;
-}
-
 export type AuthResult = { ok: true } | { ok: false; error: string };
+
+// Contrato de guardado de marca (Spec 06): el llamador solo aporta juego y
+// score; `user_id` y `player_name` los pone el provider desde la sesión, así que
+// no se pueden falsear desde el cliente.
+export type SaveScoreResult = { ok: boolean; error?: string };
 
 interface SessionValue {
   user: User | null;
@@ -25,12 +23,10 @@ interface SessionValue {
   signUp: (email: string, password: string, name: string) => Promise<AuthResult>;
   signIn: (email: string, password: string) => Promise<AuthResult>;
   signOut: () => Promise<void>;
-  saveScore: (e: Omit<ScoreEntry, "at">) => void;
+  saveScore: (e: { game: string; score: number }) => Promise<SaveScoreResult>;
 }
 
 const SessionContext = createContext<SessionValue | null>(null);
-
-const SCORES_KEY = "av_scores";
 
 // Deriva el usuario de la app desde el usuario de Supabase Auth.
 function toUser(su: SupabaseUser | null): User | null {
@@ -112,14 +108,26 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     await supabase.auth.signOut();
   };
 
-  const saveScore = (entry: Omit<ScoreEntry, "at">) => {
-    try {
-      const all = JSON.parse(localStorage.getItem(SCORES_KEY) || "[]") as ScoreEntry[];
-      all.push({ ...entry, at: Date.now() });
-      localStorage.setItem(SCORES_KEY, JSON.stringify(all));
-    } catch {
-      // ignora: sin persistencia si localStorage falla.
+  // Inserta la marca en `public.scores`. Solo autenticados: si no hay sesión no
+  // inserta. `user_id`/`player_name` salen de la sesión, no del llamador; la
+  // policy RLS `with check (auth.uid() = user_id)` respalda la propiedad.
+  const saveScore = async (entry: { game: string; score: number }): Promise<SaveScoreResult> => {
+    if (!user) {
+      return { ok: false, error: "Inicia sesión para guardar tu marca." };
     }
+    const {
+      data: { user: su },
+    } = await supabase.auth.getUser();
+    if (!su) {
+      return { ok: false, error: "Inicia sesión para guardar tu marca." };
+    }
+    const { error } = await supabase.from("scores").insert({
+      game_id: entry.game,
+      user_id: su.id,
+      player_name: user.name,
+      score: entry.score,
+    });
+    return error ? { ok: false, error: error.message } : { ok: true };
   };
 
   return (
