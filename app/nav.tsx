@@ -7,15 +7,13 @@ import { useSession } from "./session-provider";
 
 export function Nav() {
   const pathname = usePathname();
-  const { user, signOut } = useSession();
+  const { user, loading, signOut } = useSession();
   const [open, setOpen] = useState(false);
 
   const isHome = pathname === "/";
   // Biblioteca queda activa también dentro de detalle (/game/*) y reproductor (/play/*).
   const isLibrary =
-    pathname.startsWith("/games") ||
-    pathname.startsWith("/game/") ||
-    pathname.startsWith("/play");
+    pathname.startsWith("/games") || pathname.startsWith("/game/") || pathname.startsWith("/play");
   const isHall = pathname.startsWith("/hall");
   const isAbout = pathname.startsWith("/about");
   const isLogin = pathname.startsWith("/login");
@@ -50,8 +48,12 @@ export function Nav() {
           <span className="coin"></span>
           <span>CRÉDITOS · 03</span>
         </div>
-        {user ? (
-          <button className="btn ghost auth-btn" onClick={signOut}>
+        {loading ? (
+          <button className="btn ghost auth-btn" disabled aria-hidden style={{ opacity: 0.4 }}>
+            ···
+          </button>
+        ) : user ? (
+          <button className="btn ghost auth-btn" onClick={() => void signOut()}>
             {user.name} ▾
           </button>
         ) : (
@@ -59,19 +61,12 @@ export function Nav() {
             Iniciar Sesión
           </Link>
         )}
-        <button
-          className="btn ghost hamburger"
-          onClick={() => setOpen(true)}
-          aria-label="Menú"
-        >
+        <button className="btn ghost hamburger" onClick={() => setOpen(true)} aria-label="Menú">
           ≡
         </button>
       </nav>
 
-      <div
-        className={"av-mobile-backdrop" + (open ? " open" : "")}
-        onClick={close}
-      ></div>
+      <div className={"av-mobile-backdrop" + (open ? " open" : "")} onClick={close}></div>
       <aside className={"av-mobile-panel" + (open ? " open" : "")}>
         <div className="pixel neon-cyan" style={{ fontSize: 11, marginBottom: 16 }}>
           MENÚ
@@ -88,21 +83,17 @@ export function Nav() {
         <Link className={isAbout ? "active" : ""} href="/about" onClick={close}>
           Acerca de
         </Link>
-        {user ? (
+        {loading ? null : user ? (
           <a
             onClick={() => {
               close();
-              signOut();
+              void signOut();
             }}
           >
             Cerrar Sesión
           </a>
         ) : (
-          <Link
-            className={isLogin ? "active" : ""}
-            href="/login"
-            onClick={close}
-          >
+          <Link className={isLogin ? "active" : ""} href="/login" onClick={close}>
             Iniciar Sesión
           </Link>
         )}
