@@ -1,6 +1,6 @@
 # SPEC 05 — Portar el juego Asteroids (`rocas`) a la plataforma
 
-> **Estado:** Aprobado
+> **Estado:** Implementado
 > **Depende de:** `01-visual-screens-app-router.md` (reproductor `/play/[id]`, sesión + `saveScore`, `GAMES`). Coexiste con `04-supabase-auth.md` (usa `user`/`saveScore` de la sesión sin depender de auth real).
 > **Fecha:** 2026-07-27
 > **Objetivo:** Portar el juego Asteroids de `references/started-games/02-asteroids/` como el primer juego real de la plataforma, integrándolo en `/play/rocas` con el HUD, pausa, fin de partida y guardado de puntuación de la plataforma, dejando los otros 7 juegos en la simulación actual.
