@@ -23,8 +23,8 @@ Notas de contexto:
 - **Variables de entorno** — `NEXT_PUBLIC_SUPABASE_URL` y `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` (publishable key) en `.env.local`; documentadas en `.env.example` sin valores. Se leen vía MCP (`get_project_url`, `get_publishable_keys`). No se necesita service-role key en esta spec.
 - **Clientes Supabase**:
   - `lib/supabase/client.ts` — cliente de **browser** (`createBrowserClient`).
-  - `lib/supabase/server.ts` — cliente de **servidor** (`createServerClient`) con lectura/escritura de cookies (Route Handlers, middleware).
-- **`middleware.ts`** — refresco de token en cada request (patrón oficial `@supabase/ssr` para App Router), escribiendo cookies actualizadas.
+  - `lib/supabase/server.ts` — cliente de **servidor** (`createServerClient`) con lectura/escritura de cookies (Route Handlers, proxy).
+- **`proxy.ts` (antes middleware)** — refresco de token en cada request (patrón oficial `@supabase/ssr` para App Router), escribiendo cookies actualizadas.
 - **`app/auth/callback/route.ts`** — Route Handler `GET` que verifica el `token_hash`/`code` del link de confirmación de correo, establece la sesión (cookies) y redirige a `/`.
 - **`app/session-provider.tsx` (modificado)** — deriva `user` de la sesión de Supabase (`onAuthStateChange` + sesión inicial), expone `signUp()`, `signIn()`, `signOut()` reales. `user.name` = `user_metadata.display_name`. Añade `loading` para el estado inicial. **`saveScore` se conserva tal cual** (localStorage). Deja de usar `av_user`.
 - **`app/login/page.tsx` (modificado)** — pestañas iniciar/crear conectadas a `signIn`/`signUp` reales (email + password + nombre en registro). Estados: enviando, error inline (credenciales/registro), y en registro exitoso el aviso "revisa tu correo". "Jugar como invitado" → `router.push("/")` sin sesión. Botones sociales siguen decorativos.
@@ -94,13 +94,13 @@ Convenciones:
 
 ## Plan de implementación
 
-Cada paso deja el sistema compilando y navegable. Antes de escribir código de framework, leer el guía correspondiente en `node_modules/next/dist/docs/` (App Router, middleware) — esta es Next.js 16, con cambios respecto a versiones anteriores.
+Cada paso deja el sistema compilando y navegable. Antes de escribir código de framework, leer el guía correspondiente en `node_modules/next/dist/docs/` (App Router, proxy) — esta es Next.js 16, con cambios respecto a versiones anteriores.
 
 1. **Dependencias + env vars** — `npm install @supabase/supabase-js @supabase/ssr`. Obtener URL y publishable key vía MCP (`get_project_url`, `get_publishable_keys`), ponerlos en `.env.local` y documentar los nombres en `.env.example`. Prueba: `npm install` y `npm run build` compilan; sin cambios funcionales todavía.
 
 2. **Clientes Supabase** — `lib/supabase/client.ts` (`createBrowserClient`) y `lib/supabase/server.ts` (`createServerClient` con adaptador de cookies de Next 16). Prueba: importarlos desde un archivo temporal compila y resuelve tipos.
 
-3. **`middleware.ts`** — patrón `@supabase/ssr`: refresca la sesión en cada request y reescribe cookies. `matcher` que excluya assets estáticos. Prueba: navegar por las rutas existentes sigue funcionando; las cookies de Supabase se refrescan (visible en devtools).
+3. **`proxy.ts` (antes middleware)** — patrón `@supabase/ssr`: refresca la sesión en cada request y reescribe cookies. `matcher` que excluya assets estáticos. Prueba: navegar por las rutas existentes sigue funcionando; las cookies de Supabase se refrescan (visible en devtools).
 
 4. **Configurar el proyecto Supabase (MCP)** — habilitar provider email/password, mantener confirmación de correo, registrar Redirect URL `http://localhost:3000/auth/callback` (+ la de producción cuando exista) y ajustar la plantilla del correo de confirmación para apuntar a `/auth/callback` con `token_hash` + `type`. Prueba: en el dashboard/MCP el provider aparece habilitado con confirmación activa.
 
@@ -170,7 +170,7 @@ Notas de conversión:
   - **No:** Desactivar la confirmación. Más cómodo para dev, pero se optó por el flujo real desde el inicio para no re-tocarlo después.
 - **Sí:** `display_name` en `user_metadata`. Cero estructura de DB en la spec de auth; suficiente para el Nav y para que Spec 05 tenga un nombre estable.
   - **No:** Tabla `profiles` con trigger. Es modelo de datos que encaja mejor cuando existan scores (Spec 05); meterlo aquí sería alcance prestado.
-- **Sí:** `@supabase/ssr` con cookies + `middleware.ts` (browser client + server client separados). Patrón oficial para App Router; la sesión persiste y es legible en servidor.
+- **Sí:** `@supabase/ssr` con cookies + `proxy.ts` (antes middleware) (browser client + server client separados). Patrón oficial para App Router; la sesión persiste y es legible en servidor.
   - **No:** Solo cliente de browser sin SSR. Más simple, pero la sesión no estaría disponible en Route Handlers/Server Components, bloqueando la Spec 05.
 - **Sí:** Invitado = sin sesión de Supabase (`user === null`), estado efímero. Idéntico al comportamiento actual; no ensucia la identidad real.
   - **No:** Invitado con anonymous sign-in. Le daría `auth.uid()`, pero se cerró que el invitado no guarda puntuaciones, así que no aporta.
@@ -190,7 +190,7 @@ Notas de conversión:
 | Riesgo                                                                                                                                                                                     | Mitigación                                                                                                                                                           |
 | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | El correo de confirmación por defecto de Supabase apunta a su endpoint `verify`, no a `/auth/callback`; sin ajustar la plantilla + Redirect URL, el link no establece la sesión en la app. | Paso 4 configura Redirect URL y plantilla (`token_hash` + `type` → `/auth/callback`); el paso 5 verifica end-to-end abriendo un link real.                           |
-| Adaptador de cookies mal implementado en `middleware.ts`/`server.ts` (API de cookies de Next 16 difiere de versiones previas) → la sesión no se refresca o se pierde al recargar.          | Leer la guía de middleware en `node_modules/next/dist/docs/` y seguir el patrón `@supabase/ssr` al pie; criterio de aceptación "sesión sobrevive recarga" lo valida. |
+| Adaptador de cookies mal implementado en `proxy.ts` (antes middleware)/`server.ts` (API de cookies de Next 16 difiere de versiones previas) → la sesión no se refresca o se pierde al recargar.          | Leer la guía de middleware en `node_modules/next/dist/docs/` y seguir el patrón `@supabase/ssr` al pie; criterio de aceptación "sesión sobrevive recarga" lo valida. |
 | La publishable/anon key se confunde con la service-role key y se expone una clave privilegiada en el bundle.                                                                               | Solo se usa la publishable key en `NEXT_PUBLIC_*`; no se introduce service-role en esta spec (decisión explícita).                                                   |
 | Cuenta sin confirmar intenta iniciar sesión y queda en un estado ambiguo (ni entra ni mensaje claro).                                                                                      | Criterio de aceptación específico: error claro para cuenta no confirmada; el `signIn` mapea ese caso a un mensaje inline.                                            |
 | Mismatch de hidratación: el Nav renderiza estado logueado/deslogueado distinto en SSR vs cliente mientras resuelve la sesión.                                                              | `loading` en el provider; el Nav no parpadea entre estados hasta resolver la sesión inicial.                                                                         |
