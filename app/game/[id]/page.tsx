@@ -1,21 +1,18 @@
-"use client";
+import Link from "next/link";
+import { notFound } from "next/navigation";
+import { getGame } from "@/lib/games-db";
+import { getLeaderboard } from "@/lib/scores";
 
-import { use, useMemo } from "react";
-import { notFound, useRouter } from "next/navigation";
-import { GAMES, seededScores } from "@/lib/games";
+// Detalle: server component que lee el juego y su leaderboard real desde DB
+// (Spec 06). `notFound()` si el slug no existe. La navegación usa <Link>, así
+// que no hace falta un client child.
+export default async function GameDetail({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
 
-export default function GameDetail({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
-  const { id } = use(params);
-  const router = useRouter();
-
-  const game = useMemo(() => GAMES.find((g) => g.id === id), [id]);
-  const scores = useMemo(() => seededScores(id.length * 17 + 3, 10), [id]);
-
+  const game = await getGame(id);
   if (!game) notFound();
+
+  const scores = await getLeaderboard(id, 10);
 
   return (
     <div className="av-detail fade-in">
@@ -63,18 +60,12 @@ export default function GameDetail({
             </div>
           </div>
           <div className="detail-actions">
-            <button
-              className="btn xl pulse"
-              onClick={() => router.push(`/play/${game.id}`)}
-            >
-              ▶  JUGAR AHORA
-            </button>
-            <button
-              className="btn ghost lg"
-              onClick={() => router.push("/games")}
-            >
+            <Link className="btn xl pulse" href={`/play/${game.id}`}>
+              ▶ JUGAR AHORA
+            </Link>
+            <Link className="btn ghost lg" href="/games">
               VOLVER AL VAULT
-            </button>
+            </Link>
           </div>
         </div>
       </div>
@@ -82,30 +73,51 @@ export default function GameDetail({
       <aside>
         <div className="leaderboard">
           <h3>MEJORES PUNTUACIONES</h3>
-          {scores.map((r, i) => (
+          {scores.length === 0 ? (
             <div
-              key={r.name}
-              className={
-                "lb-row" +
-                (i === 0 ? " top1" : i === 1 ? " top2" : i === 2 ? " top3" : "")
-              }
+              style={{
+                padding: "32px 12px",
+                textAlign: "center",
+                color: "var(--ink-faint)",
+              }}
             >
-              <div className="rk">#{String(r.rank).padStart(2, "0")}</div>
-              <div className="pl">
-                {r.name}
-                <div
-                  style={{
-                    fontSize: 10,
-                    color: "var(--ink-faint)",
-                    letterSpacing: "0.1em",
-                  }}
-                >
-                  {r.date}
-                </div>
+              <div
+                className="pixel"
+                style={{
+                  fontSize: 12,
+                  color: "var(--cyan)",
+                  marginBottom: 10,
+                }}
+              >
+                SIN MARCAS AÚN
               </div>
-              <div className="sc">{r.score.toLocaleString("es-ES")}</div>
+              <div>Sé el primero en dejar tu marca.</div>
             </div>
-          ))}
+          ) : (
+            scores.map((r, i) => (
+              <div
+                key={r.rank}
+                className={
+                  "lb-row" + (i === 0 ? " top1" : i === 1 ? " top2" : i === 2 ? " top3" : "")
+                }
+              >
+                <div className="rk">#{String(r.rank).padStart(2, "0")}</div>
+                <div className="pl">
+                  {r.name}
+                  <div
+                    style={{
+                      fontSize: 10,
+                      color: "var(--ink-faint)",
+                      letterSpacing: "0.1em",
+                    }}
+                  >
+                    {r.date}
+                  </div>
+                </div>
+                <div className="sc">{r.score.toLocaleString("es-ES")}</div>
+              </div>
+            ))
+          )}
         </div>
       </aside>
     </div>
