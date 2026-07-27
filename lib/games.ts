@@ -1,5 +1,10 @@
 // Datos y tipos compartidos del arcade.
 // Port TypeScript de resources/templates/data.jsx — mismos valores, sin window.*.
+//
+// El array GAMES se conserva SOLO como referencia del seed de `public.games`
+// (Spec 06); el runtime lee el catálogo desde DB vía los helpers server-side de
+// `lib/games-db.ts`. Este módulo se mantiene client-safe (sin `next/headers`)
+// porque Home y el reproductor son client components y siguen importando tipos.
 
 export type GameColor = "cyan" | "magenta" | "yellow" | "green";
 export type Category = "ARCADE" | "PUZZLE" | "SHOOTER" | "VERSUS";
@@ -114,18 +119,27 @@ export const GAMES: Game[] = [
   },
 ];
 
-export const CATS: (Category | "TODOS")[] = [
-  "TODOS",
-  "ARCADE",
-  "PUZZLE",
-  "SHOOTER",
-  "VERSUS",
-];
+export const CATS: (Category | "TODOS")[] = ["TODOS", "ARCADE", "PUZZLE", "SHOOTER", "VERSUS"];
 
 const PLAYERS = [
-  "PX_KAI", "NEONFOX", "Z3R0COOL", "M00NRYU", "VAULT_07", "GLITCHA",
-  "ATARI_KID", "CYBER_LU", "MAGENTA88", "SCANLINE", "BIT_LORD", "ARKADYA",
-  "DROID_X", "RGB_QUEEN", "PIXEL_DAD", "RETROVIRA", "VECTORX", "JOY_STK",
+  "PX_KAI",
+  "NEONFOX",
+  "Z3R0COOL",
+  "M00NRYU",
+  "VAULT_07",
+  "GLITCHA",
+  "ATARI_KID",
+  "CYBER_LU",
+  "MAGENTA88",
+  "SCANLINE",
+  "BIT_LORD",
+  "ARKADYA",
+  "DROID_X",
+  "RGB_QUEEN",
+  "PIXEL_DAD",
+  "RETROVIRA",
+  "VECTORX",
+  "JOY_STK",
 ];
 
 // Generador mock determinista: mismas filas para el mismo seed.
@@ -146,7 +160,5 @@ export function seededScores(seed: number, count = 12): ScoreRow[] {
     const mon = String(1 + Math.floor(rand() * 12)).padStart(2, "0");
     rows.push({ rank: i + 1, name, score: Math.max(score, 1000), date: `${day}/${mon}/2026` });
   }
-  return rows
-    .sort((a, b) => b.score - a.score)
-    .map((r, i) => ({ ...r, rank: i + 1 }));
+  return rows.sort((a, b) => b.score - a.score).map((r, i) => ({ ...r, rank: i + 1 }));
 }
