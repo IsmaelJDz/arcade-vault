@@ -26,8 +26,6 @@ interface SessionValue {
   signIn: (email: string, password: string) => Promise<AuthResult>;
   signOut: () => Promise<void>;
   saveScore: (e: Omit<ScoreEntry, "at">) => void;
-  /** @deprecated temporal — se elimina en el Paso 7 (login real en /login). */
-  login: (u: { name: string } | null) => void;
 }
 
 const SessionContext = createContext<SessionValue | null>(null);
@@ -124,13 +122,8 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  // Shim temporal: /login todavía llama a login() hasta el Paso 7.
-  const login = (_u: { name: string } | null) => {
-    // no-op — el login real se conecta en el Paso 7.
-  };
-
   return (
-    <SessionContext.Provider value={{ user, loading, signUp, signIn, signOut, saveScore, login }}>
+    <SessionContext.Provider value={{ user, loading, signUp, signIn, signOut, saveScore }}>
       {children}
     </SessionContext.Provider>
   );
