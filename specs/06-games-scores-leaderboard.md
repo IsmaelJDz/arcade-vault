@@ -1,6 +1,6 @@
 # SPEC 06 — Tabla de juegos y leaderboard reales en Supabase
 
-> **Estado:** Aprobado
+> **Estado:** Implementado
 > **Depende de:** `01-visual-screens-app-router.md` (Biblioteca, Detalle, Hall, `saveScore`, `GAMES`), `04-supabase-auth.md` (sesión Supabase + clientes `lib/supabase/*` + `proxy.ts`), `05-asteroids-game.md` (`rocas` es el único juego que genera scores reales).
 > **Fecha:** 2026-07-27
 > **Objetivo:** Persistir el catálogo de juegos y las puntuaciones en Postgres (Supabase) con RLS, sembrando `games` desde el array `GAMES` actual y reemplazando el mock `seededScores` por un Salón de la Fama alimentado por scores reales, de modo que Biblioteca, Detalle y Hall lean desde la base de datos y `saveScore` inserte en DB (solo usuarios autenticados).
@@ -151,38 +151,38 @@ Notas de conversión:
 
 **Esquema, RLS y seed**
 
-- [ ] Existen `public.games` y `public.scores` con las columnas, FKs e índice definidos.
-- [ ] RLS activo en ambas: `games` lectura pública; `scores` lectura pública + insert propio (`auth.uid() = user_id`); sin update/delete.
-- [ ] `get_advisors` no reporta tablas sin RLS ni hallazgos críticos de seguridad.
-- [ ] `games` está sembrada con los 8 juegos actuales, con `best`/`plays`/`sort` correctos y en el orden original.
-- [ ] `lib/supabase/types.ts` refleja el esquema y `npm run build` compila con esos tipos.
+- [x] Existen `public.games` y `public.scores` con las columnas, FKs e índice definidos.
+- [x] RLS activo en ambas: `games` lectura pública; `scores` lectura pública + insert propio (`auth.uid() = user_id`); sin update/delete.
+- [x] `get_advisors` no reporta tablas sin RLS ni hallazgos críticos de seguridad.
+- [x] `games` está sembrada con los 8 juegos actuales, con `best`/`plays`/`sort` correctos y en el orden original.
+- [x] `lib/supabase/types.ts` refleja el esquema y `npm run build` compila con esos tipos.
 
 **Catálogo desde DB**
 
-- [ ] `/games` (Biblioteca) renderiza las 8 tarjetas leídas de `games` (no del array en runtime).
-- [ ] Búsqueda por nombre y filtros por categoría siguen funcionando en el client child.
-- [ ] `/game/rocas` muestra los datos del juego leídos de DB; un id inexistente devuelve 404.
+- [x] `/games` (Biblioteca) renderiza las 8 tarjetas leídas de `games` (no del array en runtime).
+- [x] Búsqueda por nombre y filtros por categoría siguen funcionando en el client child.
+- [x] `/game/rocas` muestra los datos del juego leídos de DB; un id inexistente devuelve 404.
 
 **Guardado de puntuaciones**
 
-- [ ] Logueado, terminar una partida de `rocas` y pulsar GUARDAR inserta una fila en `scores` con `game_id="rocas"`, `user_id` = el del usuario, `player_name` = su `display_name` y el `score` real.
-- [ ] El insert respeta RLS: no se puede insertar con un `user_id` distinto al de la sesión.
-- [ ] Invitado (sin sesión): el modal de FIN muestra "inicia sesión para guardar tu marca" y **no** inserta nada.
-- [ ] Ya no existe ninguna escritura/lectura de `av_scores`/`localStorage` para scores en el código.
+- [x] Logueado, terminar una partida de `rocas` y pulsar GUARDAR inserta una fila en `scores` con `game_id="rocas"`, `user_id` = el del usuario, `player_name` = su `display_name` y el `score` real.
+- [x] El insert respeta RLS: no se puede insertar con un `user_id` distinto al de la sesión.
+- [x] Invitado (sin sesión): el modal de FIN muestra "inicia sesión para guardar tu marca" y **no** inserta nada.
+- [x] Ya no existe ninguna escritura/lectura de `av_scores`/`localStorage` para scores en el código.
 
 **Salón de la Fama real**
 
-- [ ] El Hall de `rocas` muestra las marcas reales de `scores` (podio top 3 + tabla top N), ordenadas por `score` desc y desempate por `created_at` asc.
-- [ ] Un juego sin scores muestra el empty state ("sé el primero…"), no filas mock.
-- [ ] La fila mock "TU MEJOR MARCA" ya no aparece.
-- [ ] El leaderboard es visible para invitados (lectura pública) sin iniciar sesión.
-- [ ] Tras guardar una marca y recargar/navegar al Hall, la marca aparece (persistencia real).
+- [x] El Hall de `rocas` muestra las marcas reales de `scores` (podio top 3 + tabla top N), ordenadas por `score` desc y desempate por `created_at` asc.
+- [x] Un juego sin scores muestra el empty state ("sé el primero…"), no filas mock.
+- [x] La fila mock "TU MEJOR MARCA" ya no aparece.
+- [x] El leaderboard es visible para invitados (lectura pública) sin iniciar sesión.
+- [x] Tras guardar una marca y recargar/navegar al Hall, la marca aparece (persistencia real).
 
 **Build y limpieza**
 
-- [ ] `npm run build` compila sin errores de TypeScript.
-- [ ] `npm run lint` pasa sin errores.
-- [ ] `seededScores` ya no alimenta ninguna vista (removido o sin usar).
+- [x] `npm run build` compila sin errores de TypeScript.
+- [x] `npm run lint` pasa sin errores.
+- [x] `seededScores` ya no alimenta ninguna vista (removido o sin usar).
 
 ---
 
