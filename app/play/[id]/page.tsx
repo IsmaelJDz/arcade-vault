@@ -1,12 +1,16 @@
 "use client";
 
+import Link from "next/link";
 import { notFound, useRouter } from "next/navigation";
 import { use, useEffect, useRef, useState } from "react";
 
 import { type Game, GAMES } from "@/lib/games";
 
-import { useSession } from "../../session-provider";
+import { type User, useSession } from "../../session-provider";
 import AsteroidsGame, { type AsteroidsGameHandle } from "./asteroids-game";
+
+// Estado del guardado de marca en el modal de FIN.
+type SaveState = "idle" | "saving" | "saved" | "error";
 
 export default function GamePlayer({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -28,8 +32,21 @@ function AsteroidsPlayer({ game }: { game: Game }) {
   const [level, setLevel] = useState(1);
   const [paused, setPaused] = useState(false);
   const [over, setOver] = useState(false);
-  const [name, setName] = useState(user ? user.name : "INVITADO");
-  const [saved, setSaved] = useState(false);
+  const [saveState, setSaveState] = useState<SaveState>("idle");
+  const [saveError, setSaveError] = useState("");
+
+  const playerName = user ? user.name : "INVITADO";
+
+  const handleSave = async () => {
+    setSaveState("saving");
+    const res = await saveScore({ game: game.id, score });
+    if (res.ok) {
+      setSaveState("saved");
+    } else {
+      setSaveError(res.error ?? "No se pudo guardar. Inténtalo de nuevo.");
+      setSaveState("error");
+    }
+  };
 
   // FIN: fuerza el cierre de partida con el score actual (congela el motor).
   const endGame = () => {
@@ -41,13 +58,14 @@ function AsteroidsPlayer({ game }: { game: Game }) {
     gameRef.current?.restart();
     setPaused(false);
     setOver(false);
-    setSaved(false);
+    setSaveState("idle");
+    setSaveError("");
   };
 
   return (
     <div className="av-player fade-in">
       <PlayerHud
-        playerName={name}
+        playerName={playerName}
         score={score}
         lives={lives}
         level={level}
@@ -89,13 +107,10 @@ function AsteroidsPlayer({ game }: { game: Game }) {
       {over && (
         <EndModal
           score={score}
-          name={name}
-          onName={setName}
-          saved={saved}
-          onSave={() => {
-            saveScore({ game: game.id, score, name });
-            setSaved(true);
-          }}
+          user={user}
+          saveState={saveState}
+          saveError={saveError}
+          onSave={handleSave}
           onRestart={restart}
           onExit={() => router.push("/games")}
         />
@@ -113,8 +128,21 @@ function SimulatedPlayer({ game }: { game: Game }) {
   const [lives] = useState(3);
   const [paused, setPaused] = useState(false);
   const [over, setOver] = useState(false);
-  const [name, setName] = useState(user ? user.name : "INVITADO");
-  const [saved, setSaved] = useState(false);
+  const [saveState, setSaveState] = useState<SaveState>("idle");
+  const [saveError, setSaveError] = useState("");
+
+  const playerName = user ? user.name : "INVITADO";
+
+  const handleSave = async () => {
+    setSaveState("saving");
+    const res = await saveScore({ game: game.id, score });
+    if (res.ok) {
+      setSaveState("saved");
+    } else {
+      setSaveError(res.error ?? "No se pudo guardar. Inténtalo de nuevo.");
+      setSaveState("error");
+    }
+  };
 
   // Nivel derivado del score (sube uno cada 2500 puntos): valor puro, sin estado.
   const level = 1 + Math.floor(score / 2500);
@@ -131,13 +159,14 @@ function SimulatedPlayer({ game }: { game: Game }) {
     setScore(0);
     setPaused(false);
     setOver(false);
-    setSaved(false);
+    setSaveState("idle");
+    setSaveError("");
   };
 
   return (
     <div className="av-player fade-in">
       <PlayerHud
-        playerName={name}
+        playerName={playerName}
         score={score}
         lives={lives}
         level={level}
@@ -164,13 +193,10 @@ function SimulatedPlayer({ game }: { game: Game }) {
       {over && (
         <EndModal
           score={score}
-          name={name}
-          onName={setName}
-          saved={saved}
-          onSave={() => {
-            saveScore({ game: game.id, score, name });
-            setSaved(true);
-          }}
+          user={user}
+          saveState={saveState}
+          saveError={saveError}
+          onSave={handleSave}
           onRestart={restart}
           onExit={() => router.push("/games")}
         />
@@ -271,17 +297,17 @@ function CrtBottom({ title }: { title: string }) {
 
 function EndModal({
   score,
-  name,
-  onName,
-  saved,
+  user,
+  saveState,
+  saveError,
   onSave,
   onRestart,
   onExit,
 }: {
   score: number;
-  name: string;
-  onName: (v: string) => void;
-  saved: boolean;
+  user: User | null;
+  saveState: SaveState;
+  saveError: string;
   onSave: () => void;
   onRestart: () => void;
   onExit: () => void;
@@ -292,20 +318,50 @@ function EndModal({
         <h2>FIN DEL JUEGO</h2>
         <div className="final-label">PUNTUACIÓN FINAL</div>
         <div className="final">{score.toLocaleString("es-ES")}</div>
-        {!saved ? (
-          <div className="input-row">
-            <input
-              value={name}
-              onChange={(e) => onName(e.target.value.toUpperCase().slice(0, 10))}
-              placeholder="TUS INICIALES"
-            />
-            <button className="btn yellow" onClick={onSave}>
-              GUARDAR PUNTUACIÓN
-            </button>
-          </div>
+
+        {user ? (
+          saveState === "saved" ? (
+            <div className="toast-saved">▸ PUNTUACIÓN GUARDADA_</div>
+          ) : (
+            <div className="input-row" style={{ flexDirection: "column", gap: 8 }}>
+              <div
+                className="mono"
+                style={{
+                  fontSize: 11,
+                  color: "var(--ink-dim)",
+                  letterSpacing: "0.14em",
+                }}
+              >
+                GUARDAR COMO <b style={{ color: "var(--cyan)" }}>{user.name}</b>
+              </div>
+              <button className="btn yellow" onClick={onSave} disabled={saveState === "saving"}>
+                {saveState === "saving" ? "GUARDANDO…" : "GUARDAR PUNTUACIÓN"}
+              </button>
+              {saveState === "error" && (
+                <div className="mono" style={{ fontSize: 11, color: "var(--magenta)" }}>
+                  {saveError}
+                </div>
+              )}
+            </div>
+          )
         ) : (
-          <div className="toast-saved">▸ PUNTUACIÓN GUARDADA_</div>
+          <div
+            className="mono"
+            style={{
+              fontSize: 12,
+              color: "var(--ink-dim)",
+              letterSpacing: "0.06em",
+              lineHeight: 1.6,
+              margin: "4px 0 8px",
+            }}
+          >
+            Inicia sesión para guardar tu marca.{" "}
+            <Link href="/login" style={{ color: "var(--yellow)" }}>
+              ENTRAR
+            </Link>
+          </div>
         )}
+
         <div className="actions">
           <button className="btn" onClick={onRestart}>
             JUGAR DE NUEVO
