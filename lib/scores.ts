@@ -1,6 +1,6 @@
 // Lecturas del leaderboard real (Spec 06).
 // Las filas de `public.scores` se leen server-side y se mapean a ScoreRow,
-// la misma forma que consumía el Hall con el mock seededScores.
+// la forma que consume el Hall.
 
 import { createClient } from "@/lib/supabase/server";
 import type { ScoreRow } from "@/lib/games";
