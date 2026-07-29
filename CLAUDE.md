@@ -37,3 +37,5 @@ Arcade Vault (Spanish-language) is an online arcade platform where users play ga
 ## Workflow
 
 Project follows Spec Driven Design via the `/spec` and `/spec-impl` skills (Klerith/fernando-skills). Use them for new features.
+
+**Juegos nuevos:** para portar un juego de `references/started-games/` al reproductor con su leaderboard, usa `/add-game <carpeta>` (diseña la spec del juego, combina el patrón de las specs 05+06) y luego `/add-game-impl NN` (implementa la spec aprobada: motor `lib/games/<slug>.ts`, wrapper, branch en `app/play/[id]/page.tsx`, fila en `games` de Supabase, `GAMES`/CSS). Definidas en `.claude/skills/`.
