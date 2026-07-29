@@ -8,6 +8,7 @@ import { type Game, GAMES } from "@/lib/games";
 
 import { type User, useSession } from "../../session-provider";
 import AsteroidsGame, { type AsteroidsGameHandle } from "./asteroids-game";
+import CaidaGame, { type CaidaGameHandle } from "./caida-game";
 
 // Estado del guardado de marca en el modal de FIN.
 type SaveState = "idle" | "saving" | "saved" | "error";
@@ -17,8 +18,10 @@ export default function GamePlayer({ params }: { params: Promise<{ id: string }>
   const game = GAMES.find((g) => g.id === id);
   if (!game) notFound();
 
-  // Solo `rocas` es juego real; el resto sigue en simulación (spec 05).
-  return game.id === "rocas" ? <AsteroidsPlayer game={game} /> : <SimulatedPlayer game={game} />;
+  // Juegos reales portados; el resto sigue en simulación (specs 05/07).
+  if (game.id === "rocas") return <AsteroidsPlayer game={game} />;
+  if (game.id === "caida") return <CaidaPlayer game={game} />;
+  return <SimulatedPlayer game={game} />;
 }
 
 // ── Reproductor real: Asteroids ───────────────────────────────────────────────
@@ -97,6 +100,106 @@ function AsteroidsPlayer({ game }: { game: Game }) {
             <kbd>►</kbd> ROTAR
             <kbd>▲</kbd> PROPULSAR
             <kbd>ESPACIO</kbd> DISPARAR
+          </span>
+        </div>
+        <div className="keyboard-notice">
+          ⌨ ESTE JUEGO REQUIERE TECLADO — JUÉGALO EN UNA COMPUTADORA
+        </div>
+      </div>
+
+      {over && (
+        <EndModal
+          score={score}
+          user={user}
+          saveState={saveState}
+          saveError={saveError}
+          onSave={handleSave}
+          onRestart={restart}
+          onExit={() => router.push("/games")}
+        />
+      )}
+    </div>
+  );
+}
+
+// ── Reproductor real: Caída (Tetris) ─────────────────────────────────────────
+function CaidaPlayer({ game }: { game: Game }) {
+  const router = useRouter();
+  const { user, saveScore } = useSession();
+  const gameRef = useRef<CaidaGameHandle>(null);
+
+  const [score, setScore] = useState(0);
+  const [lines, setLines] = useState(0);
+  const [level, setLevel] = useState(1);
+  const [paused, setPaused] = useState(false);
+  const [over, setOver] = useState(false);
+  const [saveState, setSaveState] = useState<SaveState>("idle");
+  const [saveError, setSaveError] = useState("");
+
+  const playerName = user ? user.name : "INVITADO";
+
+  const handleSave = async () => {
+    setSaveState("saving");
+    const res = await saveScore({ game: game.id, score });
+    if (res.ok) {
+      setSaveState("saved");
+    } else {
+      setSaveError(res.error ?? "No se pudo guardar. Inténtalo de nuevo.");
+      setSaveState("error");
+    }
+  };
+
+  // FIN: fuerza el cierre de partida con el score actual (congela el motor).
+  const endGame = () => {
+    setPaused(true);
+    setOver(true);
+  };
+
+  const restart = () => {
+    gameRef.current?.restart();
+    setPaused(false);
+    setOver(false);
+    setSaveState("idle");
+    setSaveError("");
+  };
+
+  return (
+    <div className="av-player fade-in">
+      <PlayerHud
+        playerName={playerName}
+        score={score}
+        lines={lines}
+        level={level}
+        paused={paused}
+        onPause={() => setPaused((p) => !p)}
+        onEnd={endGame}
+        onExit={() => router.push(`/game/${game.id}`)}
+      />
+
+      <div className="crt">
+        <div className="crt-screen">
+          <CaidaGame
+            ref={gameRef}
+            paused={paused}
+            onScore={setScore}
+            onLines={setLines}
+            onLevel={setLevel}
+            onGameOver={() => setOver(true)}
+          />
+          {paused && <PauseOverlay />}
+        </div>
+        <CrtBottom title={game.title} />
+      </div>
+
+      <div className="game-controls">
+        <div className="controls-legend">
+          <span className="keys">
+            <kbd>◄</kbd>
+            <kbd>►</kbd> MOVER
+            <kbd>▲</kbd>
+            <kbd>X</kbd> ROTAR
+            <kbd>▼</kbd> BAJAR
+            <kbd>ESPACIO</kbd> CAER
           </span>
         </div>
         <div className="keyboard-notice">
@@ -210,6 +313,7 @@ function PlayerHud({
   playerName,
   score,
   lives,
+  lines,
   level,
   paused,
   onPause,
@@ -218,13 +322,16 @@ function PlayerHud({
 }: {
   playerName: string;
   score: number;
-  lives: number;
+  lives?: number;
+  lines?: number;
   level: number;
   paused: boolean;
   onPause: () => void;
   onEnd: () => void;
   onExit: () => void;
 }) {
+  // Stat central adaptable por juego: Líneas (Tetris) o Vidas (resto).
+  const showLines = lines !== undefined;
   return (
     <div className="player-hud">
       <div style={{ display: "flex", gap: 24, flexWrap: "wrap" }}>
@@ -238,9 +345,11 @@ function PlayerHud({
           <div className="l">Puntuación</div>
           <div className="v">{score.toLocaleString("es-ES")}</div>
         </div>
-        <div className="hud-stat lives">
-          <div className="l">Vidas</div>
-          <div className="v">{"♥ ".repeat(lives).trim() || "—"}</div>
+        <div className={`hud-stat ${showLines ? "lines" : "lives"}`}>
+          <div className="l">{showLines ? "Líneas" : "Vidas"}</div>
+          <div className="v">
+            {showLines ? String(lines) : "♥ ".repeat(lives ?? 0).trim() || "—"}
+          </div>
         </div>
         <div className="hud-stat level">
           <div className="l">Nivel</div>
