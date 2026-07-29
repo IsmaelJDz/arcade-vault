@@ -1,6 +1,6 @@
 # SPEC 07 — Portar el juego Tetris (`caida`) a la plataforma
 
-> **Estado:** Aprobado
+> **Estado:** Implementado
 > **Depende de:** `01-visual-screens-app-router.md` (reproductor `/play/[id]`, sesión + `saveScore`, `GAMES`), `05-asteroids-game.md` (patrón de motor portado + reproductor/HUD/pausa/modal), `06-games-scores-leaderboard.md` (tablas `games`/`scores` + Hall, slug `caida` ya sembrado).
 > **Fecha:** 2026-07-28
 > **Objetivo:** Portar el Tetris de `references/started-games/03-tetris/` como el juego real de `/play/caida`, con HUD (Puntuación/Líneas/Nivel), preview de próxima pieza, pausa, fin de partida y guardado en `scores`, reemplazando la simulación actual del slug `caida` (sin sembrar fila nueva).
@@ -82,35 +82,35 @@ Cada paso deja el sistema compilando y navegable. Antes de tocar routing/params 
 
 **Build e integración**
 
-- [ ] `npm run build` compila sin errores; `npm run lint` pasa.
-- [ ] `/play/caida` renderiza el juego real (canvas) en vez de la simulación.
-- [ ] Otro id (p. ej. `/play/serpentina`) sigue mostrando la simulación falsa.
-- [ ] `lib/games/caida.ts` no accede al DOM al importarse (solo dentro de `initCaida`).
-- [ ] No se sembró fila nueva en `games`; `caida` conserva `best/plays/cover/color/cat` originales.
+- [x] `npm run build` compila sin errores; `npm run lint` pasa.
+- [x] `/play/caida` renderiza el juego real (canvas) en vez de la simulación.
+- [x] Otro id (p. ej. `/play/serpentina`) sigue mostrando la simulación falsa.
+- [x] `lib/games/caida.ts` no accede al DOM al importarse (solo dentro de `initCaida`).
+- [x] No se sembró fila nueva en `games`; `caida` conserva `best/plays/cover/color/cat` originales.
 
 **Jugabilidad y HUD**
 
-- [ ] `←`/`→` mueven, `↓` soft-drop, `↑`/`X` rotan (con wall-kick), `Espacio` hard-drop.
-- [ ] Completar filas las limpia y suma según `LINE_SCORES×nivel`; la velocidad sube cada 10 líneas.
-- [ ] La pieza fantasma (ghost) se muestra bajo la pieza actual.
-- [ ] El mini-canvas muestra correctamente la **próxima pieza** y se actualiza en cada spawn.
-- [ ] El HUD React refleja el estado **real**: Puntuación / Líneas / Nivel.
-- [ ] El juego **no** dibuja su HUD ni el overlay de PAUSA/GAME OVER en el canvas.
-- [ ] PAUSA congela y muestra "EN PAUSA"; REANUDAR continúa sin salto de tiempo.
-- [ ] FIN termina la partida y abre el modal con el score actual.
+- [x] `←`/`→` mueven, `↓` soft-drop, `↑`/`X` rotan (con wall-kick), `Espacio` hard-drop.
+- [x] Completar filas las limpia y suma según `LINE_SCORES×nivel`; la velocidad sube cada 10 líneas.
+- [x] La pieza fantasma (ghost) se muestra bajo la pieza actual.
+- [x] El mini-canvas muestra correctamente la **próxima pieza** y se actualiza en cada spawn.
+- [x] El HUD React refleja el estado **real**: Puntuación / Líneas / Nivel.
+- [x] El juego **no** dibuja su HUD ni el overlay de PAUSA/GAME OVER en el canvas.
+- [x] PAUSA congela y muestra "EN PAUSA"; REANUDAR continúa sin salto de tiempo.
+- [x] FIN termina la partida y abre el modal con el score actual.
 
 **Fin, guardado y Hall**
 
-- [ ] Perder (spawn colisiona) abre el modal de FIN con el score final (no reinicia con Espacio).
-- [ ] Logueado, GUARDAR inserta en `scores` `{ game_id:"caida", user_id, player_name, score }`.
-- [ ] Invitado: el modal muestra "inicia sesión para guardar tu marca" y no inserta.
-- [ ] Tras guardar y navegar al Hall, la marca de `caida` aparece (podio + tabla).
+- [x] Perder (spawn colisiona) abre el modal de FIN con el score final (no reinicia con Espacio).
+- [x] Logueado, GUARDAR inserta en `scores` `{ game_id:"caida", user_id, player_name, score }`.
+- [x] Invitado: el modal muestra "inicia sesión para guardar tu marca" y no inserta.
+- [x] Tras guardar y navegar al Hall, la marca de `caida` aparece (podio + tabla).
 
 **Escalado, input y limpieza**
 
-- [ ] El tablero se ve completo y proporcional (1:2, pillarbox) en distintos anchos; en móvil aparece el aviso "requiere teclado".
-- [ ] Flechas y Espacio no hacen scroll de la página mientras se juega.
-- [ ] Al navegar fuera de `/play/caida` y volver, no se duplican loops ni listeners.
+- [x] El tablero se ve completo y proporcional (1:2, pillarbox) en distintos anchos; en móvil aparece el aviso "requiere teclado".
+- [x] Flechas y Espacio no hacen scroll de la página mientras se juega.
+- [x] Al navegar fuera de `/play/caida` y volver, no se duplican loops ni listeners.
 
 ## Decisiones
 
