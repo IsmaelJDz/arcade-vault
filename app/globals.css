@@ -961,8 +961,8 @@ a {
 /* ===== player ===== */
 .av-player {
   max-width: 1100px;
-  margin: 32px auto;
-  padding: 0 24px 64px;
+  margin: 20px auto;
+  padding: 0 24px 28px;
 }
 .player-hud {
   display: flex;
@@ -1008,6 +1008,12 @@ a {
 
 .crt {
   position: relative;
+  /* Acota el televisor al alto disponible del viewport (manteniendo 4:3)
+     para que el reproductor entre sin scroll. El 4/3 convierte alto→ancho;
+     el término restado es el chrome vertical (nav + HUD + controles + marco). */
+  width: 100%;
+  max-width: calc((100dvh - 372px) * 4 / 3);
+  margin-inline: auto;
   border-radius: 28px;
   background: #050507;
   padding: 24px;
