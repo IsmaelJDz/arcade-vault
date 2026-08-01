@@ -9,7 +9,7 @@
 > esos sprites para la comida, lo que lo convierte en **el primer juego del repo que usa `drawImage`**
 > (los 8 actuales dibujan por vectores).
 
-- **Estado:** Aprobado
+- **Estado:** Implementado
 - **Depende de:** `01-visual-screens-app-router.md` (reproductor `/play/[id]`, `PlayerHud`, `saveScore`,
   `GAMES`), `05-asteroids-game.md` (patrón de motor + wrapper + `Player`), `06-games-scores-leaderboard.md`
   (tablas `games`/`scores`, seed, Hall).
