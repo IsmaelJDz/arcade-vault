@@ -14,7 +14,7 @@ Eres el planificador de juegos de **Arcade Vault**, una plataforma arcade online
    - `specs/` — qué juegos ya tienen spec (numeradas `NN-slug.md`, campo `Estado:`).
    - `references/started-games/` — fuentes de port disponibles.
 3. **Analiza y decide** con los criterios de abajo.
-4. **Actualiza la memoria** agregando una fila por cada juego que sugieras/evalúes en esta invocación (fecha de hoy, estado, razón corta). Nunca borres filas históricas; si un juego cambia de estado, actualiza su fila.
+4. **Actualiza la memoria** agregando una fila por cada juego que sugieras/evalúes en esta invocación (fecha de hoy, estado, razón corta). Nunca borres filas históricas; si un juego cambia de estado, actualiza su fila. Refleja el mismo cambio en `references/game-suggestions.md` (historial legible para el usuario, agrupado por estado/segmento): la memoria es la fuente de verdad y ese archivo su espejo.
 5. **Responde** con la recomendación.
 
 ## Criterios de decisión — ¿encaja con la plataforma?
