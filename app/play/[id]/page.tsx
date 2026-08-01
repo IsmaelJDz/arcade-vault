@@ -8,6 +8,7 @@ import { type Game, GAMES } from "@/lib/games";
 
 import { type User, useSession } from "../../session-provider";
 import AsteroidsGame, { type AsteroidsGameHandle } from "./asteroids-game";
+import BloqueBusterGame, { type BloqueBusterGameHandle } from "./bloque-buster-game";
 import CaidaGame, { type CaidaGameHandle } from "./caida-game";
 
 // Estado del guardado de marca en el modal de FIN.
@@ -18,9 +19,10 @@ export default function GamePlayer({ params }: { params: Promise<{ id: string }>
   const game = GAMES.find((g) => g.id === id);
   if (!game) notFound();
 
-  // Juegos reales portados; el resto sigue en simulación (specs 05/07).
+  // Juegos reales portados; el resto sigue en simulación (specs 05/07/08).
   if (game.id === "rocas") return <AsteroidsPlayer game={game} />;
   if (game.id === "caida") return <CaidaPlayer game={game} />;
+  if (game.id === "bloque-buster") return <BloqueBusterPlayer game={game} />;
   return <SimulatedPlayer game={game} />;
 }
 
@@ -200,6 +202,102 @@ function CaidaPlayer({ game }: { game: Game }) {
             <kbd>X</kbd> ROTAR
             <kbd>▼</kbd> BAJAR
             <kbd>ESPACIO</kbd> CAER
+          </span>
+        </div>
+        <div className="keyboard-notice">
+          ⌨ ESTE JUEGO REQUIERE TECLADO — JUÉGALO EN UNA COMPUTADORA
+        </div>
+      </div>
+
+      {over && (
+        <EndModal
+          score={score}
+          user={user}
+          saveState={saveState}
+          saveError={saveError}
+          onSave={handleSave}
+          onRestart={restart}
+          onExit={() => router.push("/games")}
+        />
+      )}
+    </div>
+  );
+}
+
+// ── Reproductor real: Bloque Buster (Arkanoid) ───────────────────────────────
+function BloqueBusterPlayer({ game }: { game: Game }) {
+  const router = useRouter();
+  const { user, saveScore } = useSession();
+  const gameRef = useRef<BloqueBusterGameHandle>(null);
+
+  const [score, setScore] = useState(0);
+  const [lives, setLives] = useState(3);
+  const [level, setLevel] = useState(1);
+  const [paused, setPaused] = useState(false);
+  const [over, setOver] = useState(false);
+  const [saveState, setSaveState] = useState<SaveState>("idle");
+  const [saveError, setSaveError] = useState("");
+
+  const playerName = user ? user.name : "INVITADO";
+
+  const handleSave = async () => {
+    setSaveState("saving");
+    const res = await saveScore({ game: game.id, score });
+    if (res.ok) {
+      setSaveState("saved");
+    } else {
+      setSaveError(res.error ?? "No se pudo guardar. Inténtalo de nuevo.");
+      setSaveState("error");
+    }
+  };
+
+  // FIN: fuerza el cierre de partida con el score actual (congela el motor).
+  const endGame = () => {
+    setPaused(true);
+    setOver(true);
+  };
+
+  const restart = () => {
+    gameRef.current?.restart();
+    setPaused(false);
+    setOver(false);
+    setSaveState("idle");
+    setSaveError("");
+  };
+
+  return (
+    <div className="av-player fade-in">
+      <PlayerHud
+        playerName={playerName}
+        score={score}
+        lives={lives}
+        level={level}
+        paused={paused}
+        onPause={() => setPaused((p) => !p)}
+        onEnd={endGame}
+        onExit={() => router.push(`/game/${game.id}`)}
+      />
+
+      <div className="crt">
+        <div className="crt-screen">
+          <BloqueBusterGame
+            ref={gameRef}
+            paused={paused}
+            onScore={setScore}
+            onLives={setLives}
+            onLevel={setLevel}
+            onGameOver={() => setOver(true)}
+          />
+          {paused && <PauseOverlay />}
+        </div>
+        <CrtBottom title={game.title} />
+      </div>
+
+      <div className="game-controls">
+        <div className="controls-legend">
+          <span className="keys">
+            <kbd>◄</kbd>
+            <kbd>►</kbd> MOVER
           </span>
         </div>
         <div className="keyboard-notice">
