@@ -16,6 +16,10 @@ No test runner is configured yet. Verify with `npm run build` + `npm run lint`.
 - **/add-game `<carpeta>`** + **/add-game-impl `NN`** — portar un juego nuevo (ver Workflow).
 - Spec Driven Design vía **/spec** y **/spec-impl** para features generales.
 
+## Agents
+
+- **game-planner** (`.claude/agents/game-planner.md`) — planifica y decide qué juego encaja como próximo port. Úsalo cuando se pregunte qué juego agregar o para planear el roadmap de juegos. Mantiene memoria persistente de sugerencias en `.claude/agents/memory/game-planner.md` (nunca re-sugiere `rechazado`/`implementado`); su salida alimenta el workflow `/add-game`.
+
 ## Product
 
 **Arcade Vault** (Spanish-language) es una plataforma de arcade online: los usuarios juegan y compiten por puntuaciones. Ya **no es un scaffold** — el producto está construido sobre App Router con auth, DB y varios juegos reales portados.
