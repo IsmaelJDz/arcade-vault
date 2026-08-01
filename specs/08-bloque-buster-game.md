@@ -1,6 +1,6 @@
 # SPEC 08 — Portar el juego Arkanoid (`bloque-buster`) a la plataforma
 
-> **Estado:** Aprobado
+> **Estado:** Implementado
 > **Depende de:** `01-visual-screens-app-router.md` (reproductor `/play/[id]`, sesión + `saveScore`, `GAMES`), `05-asteroids-game.md` (patrón de motor portado + reproductor/HUD/pausa/modal, HUD con Vidas), `06-games-scores-leaderboard.md` (tablas `games`/`scores` + Hall, slug `bloque-buster` ya sembrado).
 > **Fecha:** 2026-08-01
 > **Objetivo:** Portar el Arkanoid de `references/started-games/04-arkanoid/` como el juego real de `/play/bloque-buster`, con HUD (Puntuación/Vidas/Nivel), 5 niveles, sonido de rebote/ruptura, pausa, fin de partida (perder o completar) y guardado en `scores`, reemplazando la simulación actual del slug `bloque-buster` (sin sembrar fila nueva), redibujando los sprites en estilo vector-neón.
