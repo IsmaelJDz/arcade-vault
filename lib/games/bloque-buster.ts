@@ -4,6 +4,8 @@
 // initBloqueBuster(); la UI (HUD, pausa, modal de fin) la pone React. Los sprites
 // del PNG original se redibujan en estilo vector-neón; se conservan los 2 sonidos.
 
+import type { SkinId } from "./skins";
+
 export interface BloqueBusterHandlers {
   onScore: (score: number) => void;
   onLives: (lives: number) => void;
@@ -15,6 +17,7 @@ export interface BloqueBusterControls {
   destroy: () => void;
   setPaused: (paused: boolean) => void;
   restart: () => void;
+  setSkin: (skin: SkinId) => void;
 }
 
 // ── Dimensiones fijas (el escalado es solo CSS) ──────────────────────────────
@@ -32,18 +35,70 @@ const BASE_BALL_VX = 200;
 const BASE_BALL_VY = -300;
 const EXPLOSION_DURATION = 150; // ms
 
-// ── Paleta vector-neón (reemplaza el spritesheet) ────────────────────────────
-const NEON: Record<string, string> = {
-  red: "#ff3b5c",
-  yellow: "#ffe94d",
-  cyan: "#4dfff5",
-  magenta: "#ff4dff",
-  hotpink: "#ff6ec7",
-  green: "#4dff88",
-  gray: "#9aa0aa",
+// ── Paleta por skin (solo colores del canvas; el chrome queda fuera) ─────────
+export interface BloqueBusterPalette {
+  fondo: string; // fondo del canvas
+  bloques: Record<string, string>; // color por clave de bloque de los niveles
+  brillo: string; // brillo interior de los bloques (se pinta con alpha 0.25)
+  paleta: string; // paddle
+  bola: string; // pelota
+  glow: number; // factor sobre los shadowBlur base (1 = look original)
+}
+
+export const BLOQUE_BUSTER_SKINS: Record<SkinId, BloqueBusterPalette> = {
+  // Paleta vector-neón original del port (reemplazó el spritesheet), movida
+  // tal cual: regresión visual cero.
+  clasico: {
+    fondo: "#000",
+    bloques: {
+      red: "#ff3b5c",
+      yellow: "#ffe94d",
+      cyan: "#4dfff5",
+      magenta: "#ff4dff",
+      hotpink: "#ff6ec7",
+      green: "#4dff88",
+      gray: "#9aa0aa",
+    },
+    brillo: "#ffffff",
+    paleta: "#4dfff5",
+    bola: "#ffffff",
+    glow: 1,
+  },
+  // Synthwave saturado: primarios eléctricos con glow reforzado sobre violeta oscuro.
+  neon: {
+    fondo: "#0b0217",
+    bloques: {
+      red: "#ff3355",
+      yellow: "#faff00",
+      cyan: "#00f0ff",
+      magenta: "#ff2fd6",
+      hotpink: "#ff7ab8",
+      green: "#39ff14",
+      gray: "#8f9dff",
+    },
+    brillo: "#ffffff",
+    paleta: "#00f0ff",
+    bola: "#faff00",
+    glow: 1.5,
+  },
+  // CRT de 8 bits apagado: tonos de época sobre ámbar-negro, con bloom sutil.
+  retro: {
+    fondo: "#140d02",
+    bloques: {
+      red: "#e0563c",
+      yellow: "#ffb000",
+      cyan: "#6fc7b4",
+      magenta: "#c77bd4",
+      hotpink: "#e08a9e",
+      green: "#8fbf4f",
+      gray: "#b0a890",
+    },
+    brillo: "#fff3d0",
+    paleta: "#ffb000",
+    bola: "#ffe9b0",
+    glow: 0.35,
+  },
 };
-const PADDLE_COLOR = "#4dfff5";
-const BALL_COLOR = "#ffffff";
 
 // ── Niveles (port literal de levels.js) ──────────────────────────────────────
 interface BlockDef {
@@ -130,9 +185,14 @@ interface Explosion {
 export function initBloqueBuster(
   canvas: HTMLCanvasElement,
   handlers: BloqueBusterHandlers,
+  options?: { skin?: SkinId },
 ): BloqueBusterControls {
   const ctx = canvas.getContext("2d");
   if (!ctx) throw new Error("No se pudo obtener el contexto 2D del canvas");
+
+  // Paleta activa: mutable para que setSkin() cambie los colores en vivo,
+  // sin reiniciar la partida (el draw-loop la lee cada frame).
+  let palette: BloqueBusterPalette = BLOQUE_BUSTER_SKINS[options?.skin ?? "clasico"];
 
   const LEVELS = buildLevels();
 
@@ -332,17 +392,17 @@ export function initBloqueBuster(
   }
 
   function drawBlock(b: Block) {
-    const color = NEON[b.color] ?? "#ffffff";
+    const color = palette.bloques[b.color] ?? "#ffffff";
     ctx!.save();
     ctx!.shadowColor = color;
-    ctx!.shadowBlur = 12;
+    ctx!.shadowBlur = 12 * palette.glow;
     ctx!.fillStyle = color;
     roundRect(b.x + 2, b.y + 2, b.w - 4, b.h - 4, 4);
     ctx!.fill();
     // Brillo interior sutil
     ctx!.shadowBlur = 0;
     ctx!.globalAlpha = 0.25;
-    ctx!.fillStyle = "#ffffff";
+    ctx!.fillStyle = palette.brillo;
     roundRect(b.x + 4, b.y + 4, b.w - 8, (b.h - 8) / 2, 3);
     ctx!.fill();
     ctx!.restore();
@@ -352,7 +412,7 @@ export function initBloqueBuster(
     const t = exp.elapsed / EXPLOSION_DURATION; // 0 → 1
     const alpha = 1 - t;
     const grow = 1 + t * 0.8;
-    const color = NEON[exp.color] ?? "#ffffff";
+    const color = palette.bloques[exp.color] ?? "#ffffff";
     const cx = exp.x + exp.w / 2;
     const cy = exp.y + exp.h / 2;
     const w = exp.w * grow;
@@ -360,7 +420,7 @@ export function initBloqueBuster(
     ctx!.save();
     ctx!.globalAlpha = alpha;
     ctx!.shadowColor = color;
-    ctx!.shadowBlur = 20;
+    ctx!.shadowBlur = 20 * palette.glow;
     ctx!.strokeStyle = color;
     ctx!.lineWidth = 2;
     roundRect(cx - w / 2, cy - h / 2, w, h, 4);
@@ -370,9 +430,9 @@ export function initBloqueBuster(
 
   function drawPaddle() {
     ctx!.save();
-    ctx!.shadowColor = PADDLE_COLOR;
-    ctx!.shadowBlur = 14;
-    ctx!.fillStyle = PADDLE_COLOR;
+    ctx!.shadowColor = palette.paleta;
+    ctx!.shadowBlur = 14 * palette.glow;
+    ctx!.fillStyle = palette.paleta;
     roundRect(paddle.x, paddle.y, paddle.w, paddle.h, 7);
     ctx!.fill();
     ctx!.restore();
@@ -382,9 +442,9 @@ export function initBloqueBuster(
     const cx = ball.x + ball.w / 2;
     const cy = ball.y + ball.h / 2;
     ctx!.save();
-    ctx!.shadowColor = BALL_COLOR;
-    ctx!.shadowBlur = 16;
-    ctx!.fillStyle = BALL_COLOR;
+    ctx!.shadowColor = palette.bola;
+    ctx!.shadowBlur = 16 * palette.glow;
+    ctx!.fillStyle = palette.bola;
     ctx!.beginPath();
     ctx!.arc(cx, cy, ball.w / 2, 0, Math.PI * 2);
     ctx!.fill();
@@ -392,7 +452,7 @@ export function initBloqueBuster(
   }
 
   function draw() {
-    ctx!.fillStyle = "#000";
+    ctx!.fillStyle = palette.fondo;
     ctx!.fillRect(0, 0, W, H);
 
     for (const block of blocks) if (block.alive) drawBlock(block);
@@ -450,6 +510,10 @@ export function initBloqueBuster(
       emitChanges();
       paused = false;
       lastTime = null;
+    },
+    setSkin(skin: SkinId) {
+      // Cambio de paleta en vivo: no toca el estado de la partida.
+      palette = BLOQUE_BUSTER_SKINS[skin];
     },
   };
 }

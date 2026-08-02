@@ -264,8 +264,22 @@ function BloqueBusterPlayer({ game }: { game: Game }) {
   const [over, setOver] = useState(false);
   const [saveState, setSaveState] = useState<SaveState>("idle");
   const [saveError, setSaveError] = useState("");
+  const [skin, setSkin] = useState<SkinId>(DEFAULT_SKIN);
 
   const playerName = user ? user.name : "INVITADO";
+
+  // Carga la skin persistida del juego al montar. Debe ser en un efecto (no en
+  // el estado inicial): localStorage solo existe en cliente y leerlo durante el
+  // render provocaría un mismatch de hidratación en el selector.
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- sincronización única con localStorage
+    setSkin(loadSkin(game.id));
+  }, [game.id]);
+
+  const changeSkin = (next: SkinId) => {
+    setSkin(next);
+    saveSkin(game.id, next);
+  };
 
   const handleSave = async () => {
     setSaveState("saving");
@@ -300,6 +314,8 @@ function BloqueBusterPlayer({ game }: { game: Game }) {
         lives={lives}
         level={level}
         paused={paused}
+        skin={skin}
+        onSkinChange={changeSkin}
         onPause={() => setPaused((p) => !p)}
         onEnd={endGame}
         onExit={() => router.push(`/game/${game.id}`)}
@@ -310,6 +326,7 @@ function BloqueBusterPlayer({ game }: { game: Game }) {
           <BloqueBusterGame
             ref={gameRef}
             paused={paused}
+            skin={skin}
             onScore={setScore}
             onLives={setLives}
             onLevel={setLevel}
@@ -360,8 +377,22 @@ function SerpentinaPlayer({ game }: { game: Game }) {
   const [over, setOver] = useState(false);
   const [saveState, setSaveState] = useState<SaveState>("idle");
   const [saveError, setSaveError] = useState("");
+  const [skin, setSkin] = useState<SkinId>(DEFAULT_SKIN);
 
   const playerName = user ? user.name : "INVITADO";
+
+  // Carga la skin persistida del juego al montar. Debe ser en un efecto (no en
+  // el estado inicial): localStorage solo existe en cliente y leerlo durante el
+  // render provocaría un mismatch de hidratación en el selector.
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- sincronización única con localStorage
+    setSkin(loadSkin(game.id));
+  }, [game.id]);
+
+  const changeSkin = (next: SkinId) => {
+    setSkin(next);
+    saveSkin(game.id, next);
+  };
 
   const handleSave = async () => {
     setSaveState("saving");
@@ -396,6 +427,8 @@ function SerpentinaPlayer({ game }: { game: Game }) {
         length={length}
         level={level}
         paused={paused}
+        skin={skin}
+        onSkinChange={changeSkin}
         onPause={() => setPaused((p) => !p)}
         onEnd={endGame}
         onExit={() => router.push(`/game/${game.id}`)}
@@ -406,6 +439,7 @@ function SerpentinaPlayer({ game }: { game: Game }) {
           <SerpentinaGame
             ref={gameRef}
             paused={paused}
+            skin={skin}
             onScore={setScore}
             onLength={setLength}
             onLevel={setLevel}
