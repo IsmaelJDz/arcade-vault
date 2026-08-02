@@ -21,6 +21,7 @@ No test runner is configured yet. Verify with `npm run build` + `npm run lint`.
 - **game-planner** (`.claude/agents/game-planner.md`) — planifica y decide qué juego encaja como próximo port. Úsalo cuando se pregunte qué juego agregar o para planear el roadmap de juegos. Mantiene memoria persistente de sugerencias en `.claude/agents/memory/game-planner.md` (nunca re-sugiere `rechazado`/`implementado`); su salida alimenta el workflow `/add-game`.
 - **game-jam** (`.claude/agents/game-jam.md`) — dado un tema de jam, inventa un juego original y genera sus 3 specs Draft (`01-game-design.md`, `02-engine.md`, `03-integration.md`) en `specs/game-jam/<game-id>/` de forma automática. Úsalo cuando se dé un tema de game jam.
 - **skin-designer** (`.claude/agents/skin-designer.md`) — audita que todos los juegos reales tengan las skins `clasico`/`neon`/`retro` (solo paleta del canvas) con selector persistente en el reproductor, e implementa lo que falte con contraste validado sobre fondo oscuro. Úsalo al agregar un juego o para revisar/crear skins. Memoria en `.claude/agents/memory/skin-designer.md`.
+- **mobile-porter** (`.claude/agents/mobile-porter.md`) — audita e implementa mejoras responsive para que la app se vea bien en desktop y móvil (análisis estático de `globals.css` + DOM de las rutas, referencia `specs/10-controles-tactiles.md`). Úsalo al agregar un juego, cambiar el layout del reproductor o revisar el diseño móvil. Memoria en `.claude/agents/memory/mobile-porter.md`.
 
 ## Product
 
