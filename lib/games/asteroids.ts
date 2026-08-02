@@ -2,6 +2,8 @@
 // a un módulo TS sin globals ni acceso al DOM al importar. Todo el estado vive
 // dentro de initAsteroids(); la UI (HUD, pausa, modal de fin) la pone React.
 
+import type { SkinId } from "./skins";
+
 export interface AsteroidsHandlers {
   onScore: (score: number) => void;
   onLives: (lives: number) => void;
@@ -13,7 +15,60 @@ export interface AsteroidsControls {
   destroy: () => void;
   setPaused: (paused: boolean) => void;
   restart: () => void;
+  setSkin: (skin: SkinId) => void;
 }
+
+// ── Paleta por skin (solo colores del canvas; el chrome queda fuera) ─────────
+export interface AsteroidsPalette {
+  fondo: string; // fondo del canvas
+  nave: string; // contorno de la nave
+  propulsor: string; // llama del propulsor (con alpha)
+  bala: string; // proyectiles
+  asteroide: string; // contorno de las rocas
+  particula: string; // base "r,g,b" de las chispas de explosión (alpha dinámico)
+  powerup: string; // caja giratoria 3x y su texto
+  indicador: string; // contador "3x N.Ns" dentro del canvas
+  glow: number; // shadowBlur en px (0 = sin glow); el shadowColor deriva del elemento
+}
+
+export const ASTEROIDS_SKINS: Record<SkinId, AsteroidsPalette> = {
+  // Paleta original del port, movida tal cual (regresión visual cero).
+  clasico: {
+    fondo: "#000",
+    nave: "#fff",
+    propulsor: "rgba(255, 130, 0, 0.85)",
+    bala: "#fff",
+    asteroide: "#fff",
+    particula: "255,255,255",
+    powerup: "#0ff",
+    indicador: "#0ff",
+    glow: 0,
+  },
+  // Synthwave saturado: cian/magenta/amarillo con glow intenso sobre violeta oscuro.
+  neon: {
+    fondo: "#0b0217",
+    nave: "#00f0ff",
+    propulsor: "rgba(255, 158, 0, 0.9)",
+    bala: "#f5ff00",
+    asteroide: "#ff2fd6",
+    particula: "255,47,214",
+    powerup: "#39ff14",
+    indicador: "#39ff14",
+    glow: 12,
+  },
+  // Fósforo verde de terminal CRT; el powerup en ámbar para distinguirlo por tono.
+  retro: {
+    fondo: "#041106",
+    nave: "#33ff33",
+    propulsor: "rgba(255, 176, 0, 0.85)",
+    bala: "#b8ffc4",
+    asteroide: "#2fbf5f",
+    particula: "160,255,180",
+    powerup: "#ffb000",
+    indicador: "#ffb000",
+    glow: 4,
+  },
+};
 
 // ── Dimensiones fijas (el escalado es solo CSS) ──────────────────────────────
 const W = 800;
@@ -41,9 +96,26 @@ type GameState = "playing" | "dead" | "gameover";
 export function initAsteroids(
   canvas: HTMLCanvasElement,
   handlers: AsteroidsHandlers,
+  options?: { skin?: SkinId },
 ): AsteroidsControls {
   const ctx = canvas.getContext("2d");
   if (!ctx) throw new Error("No se pudo obtener el contexto 2D del canvas");
+
+  // Paleta activa: mutable para que setSkin() cambie los colores en vivo,
+  // sin reiniciar la partida (el draw-loop la lee cada frame).
+   
+  let palette: AsteroidsPalette = ASTEROIDS_SKINS[options?.skin ?? "clasico"];
+
+  // Glow acotado al trazo de un elemento: shadowColor siempre derivado del color.
+  function withGlow(color: string, drawFn: () => void) {
+    ctx!.save();
+    if (palette.glow > 0) {
+      ctx!.shadowColor = color;
+      ctx!.shadowBlur = palette.glow;
+    }
+    drawFn();
+    ctx!.restore();
+  }
 
   // ── Input (por instancia) ──────────────────────────────────────────────────
   const keys: Record<string, boolean> = {};
@@ -95,10 +167,12 @@ export function initAsteroids(
     }
 
     draw() {
-      ctx!.fillStyle = "#fff";
-      ctx!.beginPath();
-      ctx!.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
-      ctx!.fill();
+      withGlow(palette.bala, () => {
+        ctx!.fillStyle = palette.bala;
+        ctx!.beginPath();
+        ctx!.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+        ctx!.fill();
+      });
     }
   }
 
@@ -156,7 +230,11 @@ export function initAsteroids(
       ctx!.save();
       ctx!.translate(this.x, this.y);
       ctx!.rotate(this.rot);
-      ctx!.strokeStyle = "#fff";
+      if (palette.glow > 0) {
+        ctx!.shadowColor = palette.asteroide;
+        ctx!.shadowBlur = palette.glow;
+      }
+      ctx!.strokeStyle = palette.asteroide;
       ctx!.lineWidth = 1.5;
       ctx!.lineJoin = "round";
       ctx!.beginPath();
@@ -203,16 +281,22 @@ export function initAsteroids(
       ctx!.save();
       ctx!.translate(this.x, this.y);
       ctx!.rotate(Math.PI / 4);
-      ctx!.strokeStyle = "#0ff";
+      if (palette.glow > 0) {
+        ctx!.shadowColor = palette.powerup;
+        ctx!.shadowBlur = palette.glow;
+      }
+      ctx!.strokeStyle = palette.powerup;
       ctx!.lineWidth = 2;
       const r = this.radius * pulse;
       ctx!.strokeRect(-r, -r, r * 2, r * 2);
       ctx!.restore();
-      ctx!.fillStyle = "#0ff";
-      ctx!.font = "bold 12px monospace";
-      ctx!.textAlign = "center";
-      ctx!.textBaseline = "middle";
-      ctx!.fillText("3x", this.x, this.y);
+      withGlow(palette.powerup, () => {
+        ctx!.fillStyle = palette.powerup;
+        ctx!.font = "bold 12px monospace";
+        ctx!.textAlign = "center";
+        ctx!.textBaseline = "middle";
+        ctx!.fillText("3x", this.x, this.y);
+      });
     }
   }
 
@@ -297,7 +381,11 @@ export function initAsteroids(
       ctx!.save();
       ctx!.translate(this.x, this.y);
       ctx!.rotate(this.angle);
-      ctx!.strokeStyle = "#fff";
+      if (palette.glow > 0) {
+        ctx!.shadowColor = palette.nave;
+        ctx!.shadowBlur = palette.glow;
+      }
+      ctx!.strokeStyle = palette.nave;
       ctx!.lineWidth = 1.5;
       ctx!.lineJoin = "round";
 
@@ -316,7 +404,8 @@ export function initAsteroids(
         ctx!.moveTo(-8, -4);
         ctx!.lineTo(-8 - rand(6, 14), 0);
         ctx!.lineTo(-8, 4);
-        ctx!.strokeStyle = "rgba(255, 130, 0, 0.85)";
+        if (palette.glow > 0) ctx!.shadowColor = palette.propulsor;
+        ctx!.strokeStyle = palette.propulsor;
         ctx!.stroke();
       }
 
@@ -355,12 +444,14 @@ export function initAsteroids(
 
     draw() {
       const alpha = this.ttl / this.life;
-      ctx!.strokeStyle = `rgba(255,255,255,${alpha.toFixed(2)})`;
-      ctx!.lineWidth = 1;
-      ctx!.beginPath();
-      ctx!.moveTo(this.x, this.y);
-      ctx!.lineTo(this.x - this.vx * 0.05, this.y - this.vy * 0.05);
-      ctx!.stroke();
+      withGlow(`rgb(${palette.particula})`, () => {
+        ctx!.strokeStyle = `rgba(${palette.particula},${alpha.toFixed(2)})`;
+        ctx!.lineWidth = 1;
+        ctx!.beginPath();
+        ctx!.moveTo(this.x, this.y);
+        ctx!.lineTo(this.x - this.vx * 0.05, this.y - this.vy * 0.05);
+        ctx!.stroke();
+      });
     }
   }
 
@@ -543,14 +634,14 @@ export function initAsteroids(
     if (ship.tripleShot > 0) {
       ctx!.textAlign = "left";
       ctx!.textBaseline = "alphabetic";
-      ctx!.fillStyle = "#0ff";
+      ctx!.fillStyle = palette.indicador;
       ctx!.font = "15px monospace";
       ctx!.fillText(`3x  ${ship.tripleShot.toFixed(1)}s`, 14, 26);
     }
   }
 
   function draw() {
-    ctx!.fillStyle = "#000";
+    ctx!.fillStyle = palette.fondo;
     ctx!.fillRect(0, 0, W, H);
 
     particles.forEach((p) => p.draw());
@@ -610,6 +701,10 @@ export function initAsteroids(
       emitChanges();
       paused = false;
       lastTime = null;
+    },
+    setSkin(skin: SkinId) {
+      // Cambio de paleta en vivo: no toca el estado de la partida.
+      palette = ASTEROIDS_SKINS[skin];
     },
   };
 }

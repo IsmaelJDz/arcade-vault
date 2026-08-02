@@ -5,6 +5,14 @@ import { notFound, useRouter } from "next/navigation";
 import { use, useEffect, useRef, useState } from "react";
 
 import { type Game, GAMES } from "@/lib/games";
+import {
+  DEFAULT_SKIN,
+  SKIN_IDS,
+  SKIN_LABELS,
+  type SkinId,
+  loadSkin,
+  saveSkin,
+} from "@/lib/games/skins";
 
 import { type User, useSession } from "../../session-provider";
 import AsteroidsGame, { type AsteroidsGameHandle } from "./asteroids-game";
@@ -41,8 +49,22 @@ function AsteroidsPlayer({ game }: { game: Game }) {
   const [over, setOver] = useState(false);
   const [saveState, setSaveState] = useState<SaveState>("idle");
   const [saveError, setSaveError] = useState("");
+  const [skin, setSkin] = useState<SkinId>(DEFAULT_SKIN);
 
   const playerName = user ? user.name : "INVITADO";
+
+  // Carga la skin persistida del juego al montar. Debe ser en un efecto (no en
+  // el estado inicial): localStorage solo existe en cliente y leerlo durante el
+  // render provocaría un mismatch de hidratación en el selector.
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- sincronización única con localStorage
+    setSkin(loadSkin(game.id));
+  }, [game.id]);
+
+  const changeSkin = (next: SkinId) => {
+    setSkin(next);
+    saveSkin(game.id, next);
+  };
 
   const handleSave = async () => {
     setSaveState("saving");
@@ -77,6 +99,8 @@ function AsteroidsPlayer({ game }: { game: Game }) {
         lives={lives}
         level={level}
         paused={paused}
+        skin={skin}
+        onSkinChange={changeSkin}
         onPause={() => setPaused((p) => !p)}
         onEnd={endGame}
         onExit={() => router.push(`/game/${game.id}`)}
@@ -87,6 +111,7 @@ function AsteroidsPlayer({ game }: { game: Game }) {
           <AsteroidsGame
             ref={gameRef}
             paused={paused}
+            skin={skin}
             onScore={setScore}
             onLives={setLives}
             onLevel={setLevel}
@@ -515,6 +540,8 @@ function PlayerHud({
   length,
   level,
   paused,
+  skin,
+  onSkinChange,
   onPause,
   onEnd,
   onExit,
@@ -526,6 +553,8 @@ function PlayerHud({
   length?: number;
   level: number;
   paused: boolean;
+  skin?: SkinId;
+  onSkinChange?: (skin: SkinId) => void;
   onPause: () => void;
   onEnd: () => void;
   onExit: () => void;
@@ -562,6 +591,20 @@ function PlayerHud({
           <div className="v">{String(level).padStart(2, "0")}</div>
         </div>
       </div>
+      {skin !== undefined && onSkinChange && (
+        <div className="skin-picker" role="group" aria-label="Skin del juego">
+          {SKIN_IDS.map((id) => (
+            <button
+              key={id}
+              className={`btn ghost skin-btn${skin === id ? " active" : ""}`}
+              aria-pressed={skin === id}
+              onClick={() => onSkinChange(id)}
+            >
+              {SKIN_LABELS[id]}
+            </button>
+          ))}
+        </div>
+      )}
       <div className="hud-actions">
         <button className="btn yellow" onClick={onPause}>
           {paused ? "REANUDAR" : "PAUSA"}
