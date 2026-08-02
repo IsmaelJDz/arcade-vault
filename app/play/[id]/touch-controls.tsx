@@ -117,8 +117,12 @@ export default function TouchControls({ game, disabled }: TouchControlsProps) {
 
   const controlHandlers = (code: string) => ({
     onPointerDown: (e: React.PointerEvent<HTMLButtonElement>) => {
-      e.currentTarget.setPointerCapture(e.pointerId);
       press(code);
+      try {
+        e.currentTarget.setPointerCapture(e.pointerId);
+      } catch {
+        // pointer ya liberado: la pulsación queda registrada igualmente
+      }
     },
     onPointerUp: () => release(code),
     onPointerCancel: () => release(code),

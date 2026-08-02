@@ -169,7 +169,9 @@ Cada paso deja el sistema compilando y navegable.
 
 **Comportamiento del input**
 
-- [ ] Pulsar/soltar un control equivale a `keydown`/`keyup` del teclado; deslizar el dedo fuera del botón lo suelta.
+- [ ] Pulsar/soltar un control equivale a `keydown`/`keyup` del teclado; el control permanece
+      activo mientras el dedo siga apoyado (aunque se deslice fuera del botón) y se suelta al
+      levantarlo (`pointerup`/`pointercancel`).
 - [ ] PAUSA o FIN con un control retenido: se emite su `keyup`; al reanudar nada queda "pegado".
 - [ ] Machacar botones no provoca scroll, zoom, selección de texto ni menú de long-press.
 - [ ] Navegar fuera de `/play/[id]` con controles pulsados no deja timers ni teclas retenidas.
@@ -192,6 +194,10 @@ Cada paso deja el sistema compilando y navegable.
   la vía sintética deja `lib/games/*` intacto).
 - **Layout declarado por juego en `TOUCH_LAYOUTS`, controles no usados ocultos** (No: gamepad
   fijo idéntico con botones muertos).
+- **Deslizar el dedo fuera del botón NO lo suelta: la captura del pointer lo mantiene activo
+  hasta levantar el dedo** (No: soltar en `pointerleave` — la captura implícita del touch y
+  `setPointerCapture` impiden que ese evento dispare; verificado en emulación durante el Paso 4
+  y decidido por el usuario).
 - **Multi-touch real con Pointer Events + estado por control** (No: un solo toque a la vez —
   `rocas` lo necesita para jugarse bien).
 - **Auto-repeat sintético (delay + intervalo)** (No: depender del auto-repeat del SO, que no
@@ -207,12 +213,12 @@ Cada paso deja el sistema compilando y navegable.
 
 ## Riesgos
 
-| Riesgo                                                                                                     | Mitigación                                                                                                                                     |
-| ---------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
-| Eventos sintéticos con `isTrusted: false` ignorados por algún handler                                      | Verificado: los 4 motores solo leen `e.code`, sin chequear `isTrusted`; criterio de aceptación lo cubre por juego.                             |
-| Tecla "pegada" (keydown sin keyup) al pausar, terminar o desmontar con el dedo puesto                      | `disabled` y el cleanup del unmount emiten `keyup` de todo lo retenido y cancelan los timers de auto-repeat.                                   |
-| El dedo se desliza fuera del botón y el control queda activo                                               | `setPointerCapture` + soltar en `pointerleave`/`pointercancel`/`pointerup`.                                                                    |
-| Gestos del navegador móvil (scroll, double-tap zoom, long-press, selección) al machacar botones            | `touch-action: none`, `user-select: none`, `-webkit-tap-highlight-color: transparent`, `onContextMenu` prevenido sobre la franja de controles. |
-| Auto-repeat sintético altera un motor que no lo espera                                                     | Verificado: `rocas`/`bloque-buster` usan mapa de teclas (repeats inocuos), `serpentina` re-fija dirección (idempotente), `caida` lo necesita.  |
-| Laptops con pantalla táctil muestran el gamepad en desktop                                                 | Media query combinada `(hover: none) and (pointer: coarse)` — solo dispositivos puramente táctiles.                                            |
-| Dos controles emitiendo el mismo `code` (no ocurre en los layouts actuales, pero podría en futuros juegos) | Convención documentada en el componente: un `code` por control en cada layout.                                                                 |
+| Riesgo                                                                                                     | Mitigación                                                                                                                                                                     |
+| ---------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Eventos sintéticos con `isTrusted: false` ignorados por algún handler                                      | Verificado: los 4 motores solo leen `e.code`, sin chequear `isTrusted`; criterio de aceptación lo cubre por juego.                                                             |
+| Tecla "pegada" (keydown sin keyup) al pausar, terminar o desmontar con el dedo puesto                      | `disabled` y el cleanup del unmount emiten `keyup` de todo lo retenido y cancelan los timers de auto-repeat.                                                                   |
+| El dedo se desliza fuera del botón                                                                         | Decisión: la captura del pointer mantiene el control activo hasta levantar el dedo (`pointerup`/`pointercancel`); `pointerleave` queda solo como fallback si la captura falla. |
+| Gestos del navegador móvil (scroll, double-tap zoom, long-press, selección) al machacar botones            | `touch-action: none`, `user-select: none`, `-webkit-tap-highlight-color: transparent`, `onContextMenu` prevenido sobre la franja de controles.                                 |
+| Auto-repeat sintético altera un motor que no lo espera                                                     | Verificado: `rocas`/`bloque-buster` usan mapa de teclas (repeats inocuos), `serpentina` re-fija dirección (idempotente), `caida` lo necesita.                                  |
+| Laptops con pantalla táctil muestran el gamepad en desktop                                                 | Media query combinada `(hover: none) and (pointer: coarse)` — solo dispositivos puramente táctiles.                                                                            |
+| Dos controles emitiendo el mismo `code` (no ocurre en los layouts actuales, pero podría en futuros juegos) | Convención documentada en el componente: un `code` por control en cada layout.                                                                                                 |
