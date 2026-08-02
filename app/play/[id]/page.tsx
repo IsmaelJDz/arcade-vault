@@ -131,9 +131,6 @@ function AsteroidsPlayer({ game }: { game: Game }) {
             <kbd>ESPACIO</kbd> DISPARAR
           </span>
         </div>
-        <div className="keyboard-notice">
-          ⌨ ESTE JUEGO REQUIERE TECLADO — JUÉGALO EN UNA COMPUTADORA
-        </div>
       </div>
 
       {over && (
@@ -230,9 +227,6 @@ function CaidaPlayer({ game }: { game: Game }) {
             <kbd>▼</kbd> BAJAR
             <kbd>ESPACIO</kbd> CAER
           </span>
-        </div>
-        <div className="keyboard-notice">
-          ⌨ ESTE JUEGO REQUIERE TECLADO — JUÉGALO EN UNA COMPUTADORA
         </div>
       </div>
 
@@ -343,9 +337,6 @@ function BloqueBusterPlayer({ game }: { game: Game }) {
             <kbd>◄</kbd>
             <kbd>►</kbd> MOVER
           </span>
-        </div>
-        <div className="keyboard-notice">
-          ⌨ ESTE JUEGO REQUIERE TECLADO — JUÉGALO EN UNA COMPUTADORA
         </div>
       </div>
 
@@ -458,9 +449,6 @@ function SerpentinaPlayer({ game }: { game: Game }) {
             <kbd>▲</kbd>
             <kbd>▼</kbd> MOVER
           </span>
-        </div>
-        <div className="keyboard-notice">
-          ⌨ ESTE JUEGO REQUIERE TECLADO — JUÉGALO EN UNA COMPUTADORA
         </div>
       </div>
 

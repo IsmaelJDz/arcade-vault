@@ -72,7 +72,6 @@ export default function TouchControls({ game, disabled }: TouchControlsProps) {
   const layout = TOUCH_LAYOUTS[game];
   const heldRef = useRef<Map<string, HeldTimers>>(new Map());
   const disabledRef = useRef(disabled);
-  disabledRef.current = disabled;
   const [pressed, setPressed] = useState<ReadonlySet<string>>(new Set());
 
   const release = useCallback((code: string) => {
@@ -108,6 +107,7 @@ export default function TouchControls({ game, disabled }: TouchControlsProps) {
   }, []);
 
   useEffect(() => {
+    disabledRef.current = disabled;
     if (disabled) releaseAll();
   }, [disabled, releaseAll]);
 
