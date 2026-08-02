@@ -5,7 +5,7 @@
 > `.keyboard-notice` ("requiere teclado") y los juegos son injugables. Queremos que se puedan
 > jugar en móvil con un gamepad virtual en pantalla.
 
-- **Estado:** Aprobado
+- **Estado:** Implementado
 - **Depende de:** `01-visual-screens-app-router.md` (reproductor `/play/[id]`, `CrtBottom`),
   `05-asteroids-game.md`, `07-caida-game.md`, `08-bloque-buster-game.md`,
   `09-serpentina-game.md` (los 4 motores con listeners de teclado en `window` vía `e.code`).
@@ -154,31 +154,31 @@ Cada paso deja el sistema compilando y navegable.
 
 **Build e integración**
 
-- [ ] `npm run build` y `npm run lint` sin errores.
-- [ ] `lib/games/*` y los wrappers `<slug>-game.tsx` quedan sin cambios (`git diff` limpio en esos paths).
-- [ ] En desktop (pointer fino) el gamepad no se renderiza visible y el juego con teclado físico funciona igual que antes.
-- [ ] El aviso `.keyboard-notice` ("requiere teclado") ya no existe en código ni en pantalla.
+- [x] `npm run build` y `npm run lint` sin errores.
+- [x] `lib/games/*` y los wrappers `<slug>-game.tsx` quedan sin cambios (`git diff` limpio en esos paths).
+- [x] En desktop (pointer fino) el gamepad no se renderiza visible y el juego con teclado físico funciona igual que antes.
+- [x] El aviso `.keyboard-notice` ("requiere teclado") ya no existe en código ni en pantalla.
 
 **Gamepad por juego (en dispositivo/emulación táctil)**
 
-- [ ] `rocas`: D-pad ← → ↑ + DISPARAR; rotar + propulsar + disparar a la vez (multi-touch) funciona.
-- [ ] `caida`: D-pad ← → ↓ + ROTAR + CAER; mantener ←/→ desplaza en continuo (auto-repeat); ↓ acelera la caída.
-- [ ] `bloque-buster`: solo ← →; mantener pulsado mueve el paddle en continuo.
-- [ ] `serpentina`: D-pad de 4 direcciones; un tap cambia la dirección; el giro de 180° sigue bloqueado.
-- [ ] Ningún juego muestra controles que no usa (sin botones vacíos ni direcciones muertas).
+- [x] `rocas`: D-pad ← → ↑ + DISPARAR; rotar + propulsar + disparar a la vez (multi-touch) funciona.
+- [x] `caida`: D-pad ← → ↓ + ROTAR + CAER; mantener ←/→ desplaza en continuo (auto-repeat); ↓ acelera la caída.
+- [x] `bloque-buster`: solo ← →; mantener pulsado mueve el paddle en continuo.
+- [x] `serpentina`: D-pad de 4 direcciones; un tap cambia la dirección; el giro de 180° sigue bloqueado.
+- [x] Ningún juego muestra controles que no usa (sin botones vacíos ni direcciones muertas).
 
 **Comportamiento del input**
 
-- [ ] Pulsar/soltar un control equivale a `keydown`/`keyup` del teclado; el control permanece
+- [x] Pulsar/soltar un control equivale a `keydown`/`keyup` del teclado; el control permanece
       activo mientras el dedo siga apoyado (aunque se deslice fuera del botón) y se suelta al
       levantarlo (`pointerup`/`pointercancel`).
-- [ ] PAUSA o FIN con un control retenido: se emite su `keyup`; al reanudar nada queda "pegado".
-- [ ] Machacar botones no provoca scroll, zoom, selección de texto ni menú de long-press.
-- [ ] Navegar fuera de `/play/[id]` con controles pulsados no deja timers ni teclas retenidas.
+- [x] PAUSA o FIN con un control retenido: se emite su `keyup`; al reanudar nada queda "pegado".
+- [x] Machacar botones no provoca scroll, zoom, selección de texto ni menú de long-press.
+- [x] Navegar fuera de `/play/[id]` con controles pulsados no deja timers ni teclas retenidas.
 
 **Recorrido final**
 
-- [ ] En un móvil real: partida completa en cada uno de los 4 juegos usando solo el gamepad, incluyendo pausa, fin y guardado de score.
+- [x] En un móvil real: partida completa en cada uno de los 4 juegos usando solo el gamepad, incluyendo pausa, fin y guardado de score.
 
 ---
 
