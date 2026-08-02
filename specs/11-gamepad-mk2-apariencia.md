@@ -1,6 +1,6 @@
 # SPEC 11 — Apariencia MK-II del gamepad táctil
 
-> **Estado:** Draft
+> **Estado:** Aprobado
 > **Depende de:** `10-controles-tactiles.md` (gamepad táctil funcional en `/play/[id]`)
 > **Fecha:** 2026-08-02
 > **Objetivo:** Restylear el gamepad táctil de `/play/[id]` con la estética del

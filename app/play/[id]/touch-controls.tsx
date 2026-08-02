@@ -40,11 +40,12 @@ const TOUCH_LAYOUTS: Record<string, TouchLayout> = {
 const REPEAT_DELAY_MS = 350;
 const REPEAT_INTERVAL_MS = 120;
 
-const DIR_GLYPHS: Record<TouchDir, string> = {
-  ArrowLeft: "◄",
-  ArrowRight: "►",
-  ArrowUp: "▲",
-  ArrowDown: "▼",
+// Flechas del D-pad MK-II (triángulos de references/gamepad-assets/gamepad.html)
+const DIR_ARROWS: Record<TouchDir, string> = {
+  ArrowUp: "M12 4 L20 16 L4 16 Z",
+  ArrowRight: "M8 4 L20 12 L8 20 Z",
+  ArrowDown: "M4 8 L20 8 L12 20 Z",
+  ArrowLeft: "M16 4 L16 20 L4 12 Z",
 };
 
 const DIR_AREAS: Record<TouchDir, string> = {
@@ -52,6 +53,12 @@ const DIR_AREAS: Record<TouchDir, string> = {
   ArrowRight: "right",
   ArrowUp: "up",
   ArrowDown: "down",
+};
+
+// Cada `code` de acción tiene letra y color fijos (convención MK-II):
+const ACTION_STYLES: Record<TouchAction["code"], { letter: "A" | "B"; tone: "a" | "b" }> = {
+  Space: { letter: "A", tone: "a" }, // magenta, siempre a la derecha
+  ArrowUp: { letter: "B", tone: "b" }, // cyan, siempre a la izquierda de A
 };
 
 interface HeldTimers {
@@ -129,32 +136,54 @@ export default function TouchControls({ game, disabled }: TouchControlsProps) {
     onPointerLeave: () => release(code),
   });
 
+  // B siempre a la izquierda de A, sin importar el orden del layout
+  const orderedActions = [...layout.actions].sort(
+    (x, y) =>
+      Number(ACTION_STYLES[x.code].letter === "A") - Number(ACTION_STYLES[y.code].letter === "A"),
+  );
+
   return (
     <div className="touch-controls" onContextMenu={(e) => e.preventDefault()}>
-      <div className="touch-dpad">
-        {layout.dirs.map((dir) => (
-          <button
-            key={dir}
-            type="button"
-            className={`touch-btn touch-dir touch-dir-${DIR_AREAS[dir]}${pressed.has(dir) ? " pressed" : ""}`}
-            aria-label={DIR_AREAS[dir]}
-            {...controlHandlers(dir)}
-          >
-            {DIR_GLYPHS[dir]}
-          </button>
-        ))}
-      </div>
-      <div className="touch-actions">
-        {layout.actions.map((action) => (
-          <button
-            key={action.code}
-            type="button"
-            className={`touch-btn touch-action${pressed.has(action.code) ? " pressed" : ""}`}
-            {...controlHandlers(action.code)}
-          >
-            {action.label}
-          </button>
-        ))}
+      <div className="touch-shell" role="group" aria-label="Gamepad">
+        <div className="touch-shell-body">
+          <div className="touch-dpad">
+            {layout.dirs.map((dir) => (
+              <button
+                key={dir}
+                type="button"
+                className={`touch-btn touch-dir touch-dir-${DIR_AREAS[dir]}${pressed.has(dir) ? " pressed" : ""}`}
+                aria-label={DIR_AREAS[dir]}
+                {...controlHandlers(dir)}
+              >
+                <svg className="touch-dir-arrow" viewBox="0 0 24 24" aria-hidden="true">
+                  <path d={DIR_ARROWS[dir]} fill="currentColor" />
+                </svg>
+              </button>
+            ))}
+            <div className="touch-hub" aria-hidden="true">
+              <span className="touch-hub-gem" />
+            </div>
+          </div>
+          <div className="touch-actions">
+            {orderedActions.map((action) => {
+              const style = ACTION_STYLES[action.code];
+              return (
+                <div key={action.code} className="touch-action-slot">
+                  <button
+                    type="button"
+                    className={`touch-btn touch-action touch-ab-${style.tone}${pressed.has(action.code) ? " pressed" : ""}`}
+                    aria-label={`${style.letter}: ${action.label}`}
+                    {...controlHandlers(action.code)}
+                  >
+                    <span className="touch-ab-ring" aria-hidden="true" />
+                    <span className="touch-ab-letter">{style.letter}</span>
+                  </button>
+                  <span className="touch-action-label">{action.label}</span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
       </div>
     </div>
   );
