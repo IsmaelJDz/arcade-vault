@@ -1006,6 +1006,22 @@ a {
   gap: 10px;
 }
 
+/* Selector de skin del canvas (CLÁSICO / NEÓN / RETRO) en el HUD */
+.skin-picker {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+.skin-btn {
+  padding: 9px 12px;
+  font-size: 8px;
+}
+.skin-btn.active {
+  color: var(--cyan);
+  border-color: var(--cyan);
+  box-shadow: inset 0 0 8px rgba(0, 245, 255, 0.25);
+}
+
 .crt {
   position: relative;
   /* Acota el televisor al alto disponible del viewport (manteniendo 4:3)

@@ -3,6 +3,7 @@
 import { forwardRef, useEffect, useImperativeHandle, useRef } from "react";
 
 import { type BloqueBusterControls, initBloqueBuster } from "@/lib/games/bloque-buster";
+import type { SkinId } from "@/lib/games/skins";
 
 export interface BloqueBusterGameHandle {
   restart: () => void;
@@ -14,10 +15,11 @@ interface BloqueBusterGameProps {
   onLevel: (level: number) => void;
   onGameOver: (finalScore: number) => void;
   paused: boolean;
+  skin: SkinId;
 }
 
 const BloqueBusterGame = forwardRef<BloqueBusterGameHandle, BloqueBusterGameProps>(
-  function BloqueBusterGame({ onScore, onLives, onLevel, onGameOver, paused }, ref) {
+  function BloqueBusterGame({ onScore, onLives, onLevel, onGameOver, paused, skin }, ref) {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const controlsRef = useRef<BloqueBusterControls | null>(null);
 
@@ -27,16 +29,26 @@ const BloqueBusterGame = forwardRef<BloqueBusterGameHandle, BloqueBusterGameProp
       handlersRef.current = { onScore, onLives, onLevel, onGameOver };
     });
 
+    // Skin vía ref para pintar el primer frame con la persistida sin re-montar.
+    const skinRef = useRef(skin);
+    useEffect(() => {
+      skinRef.current = skin;
+    });
+
     // Arranca el motor una vez al montar; lo destruye al desmontar.
     useEffect(() => {
       const canvas = canvasRef.current;
       if (!canvas) return;
-      const controls = initBloqueBuster(canvas, {
-        onScore: (n) => handlersRef.current.onScore(n),
-        onLives: (n) => handlersRef.current.onLives(n),
-        onLevel: (n) => handlersRef.current.onLevel(n),
-        onGameOver: (n) => handlersRef.current.onGameOver(n),
-      });
+      const controls = initBloqueBuster(
+        canvas,
+        {
+          onScore: (n) => handlersRef.current.onScore(n),
+          onLives: (n) => handlersRef.current.onLives(n),
+          onLevel: (n) => handlersRef.current.onLevel(n),
+          onGameOver: (n) => handlersRef.current.onGameOver(n),
+        },
+        { skin: skinRef.current },
+      );
       controlsRef.current = controls;
       return () => {
         controls.destroy();
@@ -48,6 +60,11 @@ const BloqueBusterGame = forwardRef<BloqueBusterGameHandle, BloqueBusterGameProp
     useEffect(() => {
       controlsRef.current?.setPaused(paused);
     }, [paused]);
+
+    // Skin dirigida por prop: cambio de paleta en vivo, sin reiniciar la partida.
+    useEffect(() => {
+      controlsRef.current?.setSkin(skin);
+    }, [skin]);
 
     useImperativeHandle(ref, () => ({ restart: () => controlsRef.current?.restart() }), []);
 
