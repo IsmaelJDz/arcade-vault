@@ -19,6 +19,7 @@ import AsteroidsGame, { type AsteroidsGameHandle } from "./asteroids-game";
 import BloqueBusterGame, { type BloqueBusterGameHandle } from "./bloque-buster-game";
 import CaidaGame, { type CaidaGameHandle } from "./caida-game";
 import SerpentinaGame, { type SerpentinaGameHandle } from "./serpentina-game";
+import TouchControls from "./touch-controls";
 
 // Estado del guardado de marca en el modal de FIN.
 type SaveState = "idle" | "saving" | "saved" | "error";
@@ -131,6 +132,7 @@ function AsteroidsPlayer({ game }: { game: Game }) {
             <kbd>ESPACIO</kbd> DISPARAR
           </span>
         </div>
+        <TouchControls game="rocas" disabled={paused || over} />
       </div>
 
       {over && (
@@ -228,6 +230,7 @@ function CaidaPlayer({ game }: { game: Game }) {
             <kbd>ESPACIO</kbd> CAER
           </span>
         </div>
+        <TouchControls game="caida" disabled={paused || over} />
       </div>
 
       {over && (
@@ -338,6 +341,7 @@ function BloqueBusterPlayer({ game }: { game: Game }) {
             <kbd>►</kbd> MOVER
           </span>
         </div>
+        <TouchControls game="bloque-buster" disabled={paused || over} />
       </div>
 
       {over && (
@@ -450,6 +454,7 @@ function SerpentinaPlayer({ game }: { game: Game }) {
             <kbd>▼</kbd> MOVER
           </span>
         </div>
+        <TouchControls game="serpentina" disabled={paused || over} />
       </div>
 
       {over && (
