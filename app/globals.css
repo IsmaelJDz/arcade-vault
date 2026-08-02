@@ -1476,6 +1476,11 @@ a {
   .touch-controls {
     display: block;
   }
+  .crt {
+    /* la placa MK-II es ~10px más alta que la franja táctil anterior:
+       el chrome vertical pasa de 372px a 382px solo en táctil */
+    max-width: calc((100dvh - 382px) * 4 / 3);
+  }
 }
 
 /* fake in-screen game */
