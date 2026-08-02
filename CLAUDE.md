@@ -19,6 +19,7 @@ No test runner is configured yet. Verify with `npm run build` + `npm run lint`.
 ## Agents
 
 - **game-planner** (`.claude/agents/game-planner.md`) — planifica y decide qué juego encaja como próximo port. Úsalo cuando se pregunte qué juego agregar o para planear el roadmap de juegos. Mantiene memoria persistente de sugerencias en `.claude/agents/memory/game-planner.md` (nunca re-sugiere `rechazado`/`implementado`); su salida alimenta el workflow `/add-game`.
+- **game-jam** (`.claude/agents/game-jam.md`) — dado un tema de jam, inventa un juego original y genera sus 3 specs Draft (`01-game-design.md`, `02-engine.md`, `03-integration.md`) en `specs/game-jam/<game-id>/` de forma automática. Úsalo cuando se dé un tema de game jam.
 
 ## Product
 
