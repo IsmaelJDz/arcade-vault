@@ -4,6 +4,8 @@
 // initSerpentina(), nada toca el DOM al importar, y la UI (HUD, pausa, modal de
 // fin) la pone React. Es el primer motor del repo que usa drawImage.
 
+import type { SkinId } from "./skins";
+
 export interface SerpentinaHandlers {
   onScore: (score: number) => void;
   onLength: (length: number) => void;
@@ -15,7 +17,62 @@ export interface SerpentinaControls {
   destroy: () => void;
   setPaused: (paused: boolean) => void;
   restart: () => void;
+  setSkin: (skin: SkinId) => void;
 }
+
+// ── Paleta por skin (solo colores del canvas; el chrome queda fuera) ─────────
+// Las frutas se dibujan con sprites PNG (drawImage) y quedan exentas del skin;
+// solo el círculo placeholder (mientras carga el spritesheet) usa la paleta.
+export interface SerpentinaPalette {
+  fondo: string; // fondo del canvas
+  grid: string; // líneas de la cuadrícula (con alpha, decoración secundaria)
+  cabeza: string; // primer segmento de la serpiente
+  cuerpo: string; // resto de segmentos
+  glowCabeza: string; // shadowColor de la cabeza (derivado de su color)
+  glowCuerpo: string; // shadowColor del cuerpo (derivado de su color)
+  blurCabeza: number; // shadowBlur de la cabeza en px
+  blurCuerpo: number; // shadowBlur del cuerpo en px
+  fruta: string; // círculo placeholder mientras carga el spritesheet
+}
+
+export const SERPENTINA_SKINS: Record<SkinId, SerpentinaPalette> = {
+  // Paleta original del motor, movida tal cual (regresión visual cero).
+  clasico: {
+    fondo: "#050810",
+    grid: "rgba(0, 255, 136, 0.05)",
+    cabeza: "#7dffb8",
+    cuerpo: "#00ff88",
+    glowCabeza: "rgba(0, 255, 136, 0.8)",
+    glowCuerpo: "rgba(0, 255, 136, 0.8)",
+    blurCabeza: 14,
+    blurCuerpo: 8,
+    fruta: "#ff2bd6",
+  },
+  // Synthwave saturado: cuerpo cian y cabeza magenta con glow intenso sobre violeta.
+  neon: {
+    fondo: "#0b0217",
+    grid: "rgba(0, 240, 255, 0.07)",
+    cabeza: "#ff2fd6",
+    cuerpo: "#00f0ff",
+    glowCabeza: "rgba(255, 47, 214, 0.9)",
+    glowCuerpo: "rgba(0, 240, 255, 0.9)",
+    blurCabeza: 18,
+    blurCuerpo: 12,
+    fruta: "#f5ff00",
+  },
+  // CRT de época: cuerpo en fósforo ámbar y cabeza en fósforo verde (tonos distintos).
+  retro: {
+    fondo: "#0c0a04",
+    grid: "rgba(255, 176, 0, 0.05)",
+    cabeza: "#33ff33",
+    cuerpo: "#ffb000",
+    glowCabeza: "rgba(51, 255, 51, 0.6)",
+    glowCuerpo: "rgba(255, 176, 0, 0.6)",
+    blurCabeza: 6,
+    blurCuerpo: 4,
+    fruta: "#ff6a3d",
+  },
+};
 
 // ── Dimensiones fijas (el escalado es solo CSS) ──────────────────────────────
 const W = 800;
@@ -68,9 +125,14 @@ type GameState = "playing" | "gameover";
 export function initSerpentina(
   canvas: HTMLCanvasElement,
   handlers: SerpentinaHandlers,
+  options?: { skin?: SkinId },
 ): SerpentinaControls {
   const ctx = canvas.getContext("2d");
   if (!ctx) throw new Error("No se pudo obtener el contexto 2D del canvas");
+
+  // Paleta activa: mutable para que setSkin() cambie los colores en vivo,
+  // sin reiniciar la partida (el draw-loop la lee cada frame).
+  let palette: SerpentinaPalette = SERPENTINA_SKINS[options?.skin ?? "clasico"];
 
   // ── Spritesheet de frutas ──────────────────────────────────────────────────
   let sprites: HTMLImageElement | null = new Image();
@@ -198,7 +260,7 @@ export function initSerpentina(
 
   // ── Dibujo (solo el área de juego; sin HUD ni overlay GAME OVER) ────────────
   function drawGrid() {
-    ctx!.strokeStyle = "rgba(0, 255, 136, 0.05)";
+    ctx!.strokeStyle = palette.grid;
     ctx!.lineWidth = 1;
     ctx!.beginPath();
     for (let c = 1; c < COLS; c++) {
@@ -234,7 +296,7 @@ export function initSerpentina(
       );
     } else {
       // Placeholder mientras el spritesheet carga.
-      ctx!.fillStyle = "#ff2bd6";
+      ctx!.fillStyle = palette.fruta;
       ctx!.beginPath();
       ctx!.arc(dx + CELL / 2, dy + CELL / 2, CELL / 2 - 3, 0, Math.PI * 2);
       ctx!.fill();
@@ -242,13 +304,13 @@ export function initSerpentina(
   }
 
   function drawSnake() {
-    ctx!.shadowColor = "rgba(0, 255, 136, 0.8)";
     for (let i = 0; i < snake.length; i++) {
       const s = snake[i];
       const px = s.x * CELL;
       const py = s.y * CELL;
-      ctx!.shadowBlur = i === 0 ? 14 : 8;
-      ctx!.fillStyle = i === 0 ? "#7dffb8" : "#00ff88";
+      ctx!.shadowColor = i === 0 ? palette.glowCabeza : palette.glowCuerpo;
+      ctx!.shadowBlur = i === 0 ? palette.blurCabeza : palette.blurCuerpo;
+      ctx!.fillStyle = i === 0 ? palette.cabeza : palette.cuerpo;
       ctx!.beginPath();
       ctx!.roundRect(px + 1.5, py + 1.5, CELL - 3, CELL - 3, 5);
       ctx!.fill();
@@ -257,7 +319,7 @@ export function initSerpentina(
   }
 
   function draw() {
-    ctx!.fillStyle = "#050810";
+    ctx!.fillStyle = palette.fondo;
     ctx!.fillRect(0, 0, W, H);
     drawGrid();
     drawFood();
@@ -313,6 +375,10 @@ export function initSerpentina(
       emitChanges();
       paused = false;
       lastTime = null;
+    },
+    setSkin(skin: SkinId) {
+      // Cambio de paleta en vivo: no toca el estado de la partida.
+      palette = SERPENTINA_SKINS[skin];
     },
   };
 }
