@@ -1202,17 +1202,54 @@ a {
   padding: 3px 6px;
   background: rgba(255, 255, 255, 0.04);
 }
-/* gamepad táctil: oculto por defecto, visible solo en dispositivos touch */
+/* gamepad táctil MK-II: oculto por defecto, visible solo en dispositivos touch */
 .touch-controls {
   display: none;
   margin-top: 14px;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
   touch-action: none;
   user-select: none;
   -webkit-user-select: none;
   -webkit-tap-highlight-color: transparent;
+}
+.touch-shell {
+  position: relative;
+  width: 100%;
+  padding: 10px 16px 8px;
+  background: linear-gradient(180deg, #1c1c28 0%, #0c0c14 100%);
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  box-shadow:
+    0 20px 50px -24px rgba(0, 245, 255, 0.4),
+    0 0 0 1px rgba(255, 255, 255, 0.02),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06),
+    inset 0 -2px 0 rgba(0, 0, 0, 0.6);
+}
+.touch-shell::before {
+  content: "";
+  position: absolute;
+  inset: 4px;
+  border: 1px solid rgba(0, 245, 255, 0.14);
+  border-radius: 14px;
+  pointer-events: none;
+}
+.touch-shell::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+  background-size: 8px 8px;
+  border-radius: inherit;
+  pointer-events: none;
+  opacity: 0.6;
+}
+.touch-shell-body {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 8px 2px;
 }
 .touch-dpad {
   display: grid;
@@ -1220,9 +1257,42 @@ a {
     ". up ."
     "left mid right"
     ". down .";
-  grid-template-columns: repeat(3, clamp(48px, 13vw, 64px));
-  grid-template-rows: repeat(3, clamp(48px, 13vw, 64px));
-  gap: 6px;
+  grid-template-columns: repeat(3, clamp(44px, 12vw, 52px));
+  grid-template-rows: repeat(3, clamp(44px, 12vw, 52px));
+  gap: 4px;
+}
+.touch-hub {
+  grid-area: mid;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: radial-gradient(circle at 50% 50%, #181822 0%, #08080d 80%);
+  border: 1px solid rgba(0, 245, 255, 0.15);
+  border-radius: 6px;
+  box-shadow:
+    inset 0 0 12px rgba(0, 0, 0, 0.8),
+    inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+.touch-hub-gem {
+  width: 12px;
+  height: 12px;
+  background: var(--cyan);
+  box-shadow:
+    0 0 10px var(--cyan),
+    inset 0 0 4px rgba(0, 0, 0, 0.5);
+  clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%);
+  animation: touch-gem-pulse 2s ease-in-out infinite;
+}
+@keyframes touch-gem-pulse {
+  50% {
+    opacity: 0.35;
+    transform: scale(0.85);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .touch-hub-gem {
+    animation: none;
+  }
 }
 .touch-dir-up {
   grid-area: up;
@@ -1238,19 +1308,21 @@ a {
 }
 .touch-actions {
   display: flex;
+  align-items: center;
+  gap: 18px;
+}
+.touch-action-slot {
+  display: flex;
   flex-direction: column;
-  align-items: stretch;
-  gap: 12px;
+  align-items: center;
+  gap: 6px;
 }
 .touch-btn {
   display: flex;
   align-items: center;
   justify-content: center;
+  padding: 0;
   font-family: var(--pixel);
-  color: var(--cyan);
-  background: rgba(0, 245, 255, 0.05);
-  border: 1px solid var(--line);
-  border-radius: 10px;
   touch-action: none;
   user-select: none;
   -webkit-user-select: none;
@@ -1258,36 +1330,156 @@ a {
   cursor: pointer;
 }
 .touch-dir {
-  font-size: 14px;
+  color: var(--ink-dim);
+  background: linear-gradient(180deg, #1a1a25, #0a0a12);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 10px;
+  box-shadow:
+    0 4px 0 #050507,
+    inset 0 1px 0 rgba(255, 255, 255, 0.06),
+    inset 0 -2px 4px rgba(0, 0, 0, 0.6);
+  transition:
+    transform 80ms,
+    box-shadow 140ms,
+    color 140ms,
+    border-color 140ms,
+    background 140ms;
+}
+.touch-dir-arrow {
+  width: 20px;
+  height: 20px;
+  transition: filter 140ms;
+}
+.touch-dir.pressed,
+.touch-dir:active {
+  transform: translateY(3px);
+  color: var(--cyan);
+  background: linear-gradient(180deg, #08161e, #030a0e);
+  border-color: var(--cyan);
+  box-shadow:
+    0 1px 0 #050507,
+    inset 0 0 16px rgba(0, 245, 255, 0.45),
+    0 0 16px rgba(0, 245, 255, 0.5);
+}
+.touch-dir.pressed .touch-dir-arrow,
+.touch-dir:active .touch-dir-arrow {
+  filter: drop-shadow(0 0 6px var(--cyan)) drop-shadow(0 0 12px var(--cyan));
 }
 .touch-action {
-  font-size: 9px;
-  letter-spacing: 0.12em;
-  color: var(--magenta);
-  border-color: rgba(255, 0, 110, 0.35);
-  background: rgba(255, 0, 110, 0.06);
-  padding: 18px 16px;
-  border-radius: 999px;
-  min-width: clamp(88px, 24vw, 120px);
+  position: relative;
+  width: clamp(56px, 16vw, 66px);
+  height: clamp(56px, 16vw, 66px);
+  border-radius: 50%;
+  border: 2px solid currentColor;
+  background:
+    radial-gradient(circle at 32% 26%, rgba(255, 255, 255, 0.25), transparent 50%),
+    radial-gradient(circle at 50% 55%, var(--ab-mid), var(--ab-deep) 75%);
+  box-shadow:
+    0 6px 0 #050507,
+    0 0 22px var(--ab-glow),
+    inset 0 1px 0 rgba(255, 255, 255, 0.18),
+    inset 0 -4px 8px rgba(0, 0, 0, 0.4);
+  transition:
+    transform 80ms,
+    box-shadow 140ms;
 }
-.touch-btn.pressed,
-.touch-btn:active {
-  color: var(--bg);
-  background: var(--cyan);
-  box-shadow: 0 0 14px rgba(0, 245, 255, 0.6);
+.touch-ab-a {
+  color: var(--magenta);
+  --ab-mid: rgba(255, 0, 110, 0.7);
+  --ab-deep: rgba(110, 0, 40, 0.95);
+  --ab-glow: rgba(255, 0, 110, 0.4);
+}
+.touch-ab-b {
+  color: var(--cyan);
+  --ab-mid: rgba(0, 200, 230, 0.7);
+  --ab-deep: rgba(0, 50, 70, 0.95);
+  --ab-glow: rgba(0, 245, 255, 0.4);
+}
+.touch-ab-letter {
+  position: relative;
+  z-index: 2;
+  font-size: clamp(16px, 4.5vw, 20px);
+  color: #fff;
+  letter-spacing: 0.02em;
+}
+.touch-ab-a .touch-ab-letter {
+  text-shadow:
+    0 0 8px var(--magenta),
+    0 0 18px var(--magenta),
+    0 1px 0 rgba(0, 0, 0, 0.6);
+}
+.touch-ab-b .touch-ab-letter {
+  text-shadow:
+    0 0 8px var(--cyan),
+    0 0 18px var(--cyan),
+    0 1px 0 rgba(0, 0, 0, 0.6);
+}
+.touch-ab-ring {
+  position: absolute;
+  inset: -7px;
+  border-radius: 50%;
+  border: 1px dashed currentColor;
+  opacity: 0;
+  transition:
+    opacity 140ms,
+    transform 200ms;
 }
 .touch-action.pressed,
 .touch-action:active {
-  color: var(--bg);
-  background: var(--magenta);
-  box-shadow: 0 0 14px rgba(255, 0, 110, 0.6);
+  transform: translateY(4px) scale(0.97);
+  box-shadow:
+    0 1px 0 #050507,
+    0 0 36px var(--ab-glow),
+    inset 0 0 18px rgba(0, 0, 0, 0.5);
+}
+.touch-action.pressed .touch-ab-ring,
+.touch-action:active .touch-ab-ring {
+  opacity: 1;
+  transform: scale(1.08);
+}
+.touch-action-label {
+  font-family: var(--pixel);
+  font-size: 8px;
+  letter-spacing: 0.12em;
+  color: var(--ink-dim);
+}
+/* variante compacta (pantallas angostas, como la referencia) */
+@media (max-width: 620px) {
+  .touch-shell {
+    padding: 8px 12px 6px;
+    border-radius: 14px;
+  }
+  .touch-shell-body {
+    gap: 12px;
+    padding: 6px 0;
+  }
+  .touch-dpad {
+    grid-template-columns: repeat(3, clamp(44px, 12vw, 46px));
+    grid-template-rows: repeat(3, clamp(44px, 12vw, 46px));
+  }
+  .touch-dir-arrow {
+    width: 18px;
+    height: 18px;
+  }
+  .touch-actions {
+    gap: 14px;
+  }
+  .touch-action {
+    width: clamp(52px, 15vw, 58px);
+    height: clamp(52px, 15vw, 58px);
+  }
 }
 @media (hover: none) and (pointer: coarse) {
   .controls-legend {
     display: none;
   }
   .touch-controls {
-    display: flex;
+    display: block;
+  }
+  .crt {
+    /* la placa MK-II es ~10px más alta que la franja táctil anterior:
+       el chrome vertical pasa de 372px a 382px solo en táctil */
+    max-width: calc((100dvh - 382px) * 4 / 3);
   }
 }
 
