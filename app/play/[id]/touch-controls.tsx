@@ -35,6 +35,10 @@ const TOUCH_LAYOUTS: Record<string, TouchLayout> = {
     dirs: ["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"],
     actions: [],
   },
+  frogger: {
+    dirs: ["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"],
+    actions: [],
+  },
 };
 
 const REPEAT_DELAY_MS = 350;
