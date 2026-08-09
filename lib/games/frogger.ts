@@ -474,13 +474,27 @@ export function initFrogger(
     }
   }
 
-  // ── Reglas resueltas en los pasos 6–7 ──────────────────────────────────────
+  // ── Ronda completada ───────────────────────────────────────────────────────
+  // Las 5 bocas llenas: bonus, siguiente nivel y mapa reconstruido más rápido.
   function completeRound() {
-    // Se completa en el paso 6.
+    score += POINTS_PER_ROUND;
+    level++;
+    startRound(); // vacía bocas, reconstruye carriles, resetea tiempo y rana
   }
 
+  // ── Muerte de la rana ──────────────────────────────────────────────────────
+  // Atropello, agua, tortuga sumergida, salir por un lateral del río o tiempo
+  // agotado. Con 0 vidas la partida termina; emitChanges() dispara onLives(0)
+  // antes que onGameOver(score).
   function killFrog() {
-    // Se completa en el paso 7.
+    lives--;
+    if (lives <= 0) {
+      lives = 0;
+      state = "gameover";
+      return;
+    }
+    placeFrog();
+    timeLeft = roundTime(level);
   }
 
   // ── Update ─────────────────────────────────────────────────────────────────
