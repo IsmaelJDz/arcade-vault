@@ -222,3 +222,78 @@ function goalIndexAt(col: number): number {
   }
   return -1;
 }
+
+// ── Mapa de carriles ─────────────────────────────────────────────────────────
+// Plantilla fija por fila: tipo de entidad, ancho, separación deseada (en celdas,
+// de borde izquierdo a borde izquierdo) y desfase inicial para escalonar carriles.
+interface LaneSpec {
+  row: number;
+  speed: number; // px/frame a 60 fps en el nivel 1
+  dir: 1 | -1;
+  type: EntityType;
+  width: number; // celdas
+  spacing: number; // separación deseada entre entidades del carril
+  offset: number; // desfase inicial (fracción de `spacing`)
+}
+
+// Carretera: filas 8–12, sentidos alternos, velocidades de 1.5 a 4 px/frame.
+const ROAD_SPECS: LaneSpec[] = [
+  { row: 12, speed: 1.5, dir: 1, type: "car", width: 1, spacing: 5, offset: 0 },
+  { row: 11, speed: 2.2, dir: -1, type: "truck", width: 2, spacing: 6.5, offset: 0.4 },
+  { row: 10, speed: 1.8, dir: 1, type: "car", width: 1, spacing: 4.5, offset: 0.7 },
+  { row: 9, speed: 4, dir: -1, type: "car", width: 1, spacing: 6, offset: 0.2 },
+  { row: 8, speed: 2.6, dir: 1, type: "truck", width: 3, spacing: 7.5, offset: 0.5 },
+];
+
+// Río: filas 1–6, velocidades de 1 a 3 px/frame; troncos de 2–4 celdas y grupos
+// de tortugas de 2–3. La fila 6 es la primera que pisa la rana al salir del asfalto.
+const RIVER_SPECS: LaneSpec[] = [
+  { row: 6, speed: 1.4, dir: 1, type: "log", width: 3, spacing: 6, offset: 0 },
+  { row: 5, speed: 1.6, dir: -1, type: "turtle", width: 3, spacing: 5.5, offset: 0.5 },
+  { row: 4, speed: 1, dir: 1, type: "log", width: 4, spacing: 7.5, offset: 0.3 },
+  { row: 3, speed: 2.4, dir: 1, type: "log", width: 2, spacing: 5, offset: 0.8 },
+  { row: 2, speed: 1.8, dir: -1, type: "turtle", width: 2, spacing: 5, offset: 0.15 },
+  { row: 1, speed: 1.2, dir: -1, type: "log", width: 3, spacing: 6.5, offset: 0.6 },
+];
+
+// Construye un carril a partir de su plantilla.
+//
+// El recorrido de una entidad va de `col = -width` a `col = COLS` (longitud
+// COLS + width) y al salir reaparece por el lado opuesto. Repartir las entidades
+// en pasos exactos de (COLS + width) / n mantiene los huecos constantes ronda
+// tras ronda, en vez de irse acumulando por el reciclado.
+function buildLane(spec: LaneSpec): Lane {
+  const path = COLS + spec.width;
+  let count = Math.max(2, Math.round(path / spec.spacing));
+  // Garantiza al menos 1 celda de hueco entre entidades: si no cabe, quita una.
+  while (count > 2 && path / count - spec.width < 1) count--;
+  const step = path / count;
+
+  const entities: Entity[] = [];
+  for (let i = 0; i < count; i++) {
+    const col = -spec.width + ((i + spec.offset) % count) * step;
+    const entity: Entity = { col, width: spec.width, type: spec.type, tint: i };
+    if (spec.type === "turtle") {
+      // Cada grupo bucea en un momento distinto del ciclo (nunca todos a la vez).
+      entity.phase = (i / count) * (TURTLE_UP_S + TURTLE_DOWN_S);
+      entity.submerged = false;
+    }
+    entities.push(entity);
+  }
+  return { row: spec.row, speed: spec.speed, dir: spec.dir, entities };
+}
+
+// Carriles de la ronda `level`: misma plantilla, todo un 15 % más rápido por nivel.
+function buildLanes(level: number): Lane[] {
+  const mult = Math.pow(1 + SPEED_PER_LEVEL, level - 1);
+  return [...RIVER_SPECS, ...ROAD_SPECS].map((spec) => {
+    const lane = buildLane(spec);
+    lane.speed = spec.speed * mult;
+    return lane;
+  });
+}
+
+// Segundos de la ronda `level`: 15 s al nivel 1, −1 s por nivel con suelo de 8 s.
+function roundTime(level: number): number {
+  return Math.max(MIN_TIME, BASE_TIME - (level - 1) * TIME_STEP);
+}
