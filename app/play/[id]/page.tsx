@@ -165,8 +165,22 @@ function CaidaPlayer({ game }: { game: Game }) {
   const [over, setOver] = useState(false);
   const [saveState, setSaveState] = useState<SaveState>("idle");
   const [saveError, setSaveError] = useState("");
+  const [skin, setSkin] = useState<SkinId>(DEFAULT_SKIN);
 
   const playerName = user ? user.name : "INVITADO";
+
+  // Carga la skin persistida del juego al montar. Debe ser en un efecto (no en
+  // el estado inicial): localStorage solo existe en cliente y leerlo durante el
+  // render provocaría un mismatch de hidratación en el selector.
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- sincronización única con localStorage
+    setSkin(loadSkin(game.id));
+  }, [game.id]);
+
+  const changeSkin = (next: SkinId) => {
+    setSkin(next);
+    saveSkin(game.id, next);
+  };
 
   const handleSave = async () => {
     setSaveState("saving");
@@ -201,6 +215,8 @@ function CaidaPlayer({ game }: { game: Game }) {
         lines={lines}
         level={level}
         paused={paused}
+        skin={skin}
+        onSkinChange={changeSkin}
         onPause={() => setPaused((p) => !p)}
         onEnd={endGame}
         onExit={() => router.push(`/game/${game.id}`)}
@@ -211,6 +227,7 @@ function CaidaPlayer({ game }: { game: Game }) {
           <CaidaGame
             ref={gameRef}
             paused={paused}
+            skin={skin}
             onScore={setScore}
             onLines={setLines}
             onLevel={setLevel}
@@ -713,7 +730,7 @@ function PlayerHud({
       : "♥ ".repeat(lives ?? 0).trim() || "—";
   return (
     <div className="player-hud">
-      <div style={{ display: "flex", gap: 24, flexWrap: "wrap" }}>
+      <div className="hud-stats">
         <div className="hud-stat">
           <div className="l">Jugador</div>
           <div className="v" style={{ color: "var(--ink)" }}>

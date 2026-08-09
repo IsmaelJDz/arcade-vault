@@ -2,7 +2,8 @@
 
 import { forwardRef, useEffect, useImperativeHandle, useRef } from "react";
 
-import { type CaidaControls, drawNextPreview, initCaida } from "@/lib/games/caida";
+import { type CaidaControls, type NextPiece, drawNextPreview, initCaida } from "@/lib/games/caida";
+import type { SkinId } from "@/lib/games/skins";
 
 export interface CaidaGameHandle {
   restart: () => void;
@@ -14,10 +15,11 @@ interface CaidaGameProps {
   onLevel: (level: number) => void;
   onGameOver: (finalScore: number) => void;
   paused: boolean;
+  skin: SkinId;
 }
 
 const CaidaGame = forwardRef<CaidaGameHandle, CaidaGameProps>(function CaidaGame(
-  { onScore, onLines, onLevel, onGameOver, paused },
+  { onScore, onLines, onLevel, onGameOver, paused, skin },
   ref,
 ) {
   const canvasRef = useRef<HTMLCanvasElement>(null); // tablero
@@ -30,20 +32,35 @@ const CaidaGame = forwardRef<CaidaGameHandle, CaidaGameProps>(function CaidaGame
     handlersRef.current = { onScore, onLines, onLevel, onGameOver };
   });
 
+  // Skin vía ref para pintar el primer frame con la persistida sin re-montar.
+  const skinRef = useRef(skin);
+  useEffect(() => {
+    skinRef.current = skin;
+  });
+
+  // Última pieza emitida: el preview solo se repinta en onNext, así que hay que
+  // conservarla para poder redibujarla cuando cambia la skin a media partida.
+  const nextPieceRef = useRef<NextPiece | null>(null);
+
   // Arranca el motor una vez al montar; lo destruye al desmontar.
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
-    const controls = initCaida(canvas, {
-      onScore: (n) => handlersRef.current.onScore(n),
-      onLines: (n) => handlersRef.current.onLines(n),
-      onLevel: (n) => handlersRef.current.onLevel(n),
-      onGameOver: (n) => handlersRef.current.onGameOver(n),
-      onNext: (piece) => {
-        const nc = nextRef.current;
-        if (nc) drawNextPreview(nc, piece);
+    const controls = initCaida(
+      canvas,
+      {
+        onScore: (n) => handlersRef.current.onScore(n),
+        onLines: (n) => handlersRef.current.onLines(n),
+        onLevel: (n) => handlersRef.current.onLevel(n),
+        onGameOver: (n) => handlersRef.current.onGameOver(n),
+        onNext: (piece) => {
+          nextPieceRef.current = piece;
+          const nc = nextRef.current;
+          if (nc) drawNextPreview(nc, piece, skinRef.current);
+        },
       },
-    });
+      { skin: skinRef.current },
+    );
     controlsRef.current = controls;
     return () => {
       controls.destroy();
@@ -55,6 +72,14 @@ const CaidaGame = forwardRef<CaidaGameHandle, CaidaGameProps>(function CaidaGame
   useEffect(() => {
     controlsRef.current?.setPaused(paused);
   }, [paused]);
+
+  // Skin dirigida por prop: cambio de paleta en vivo, sin reiniciar la partida.
+  // El tablero se repinta solo en el loop; el preview hay que redibujarlo aquí.
+  useEffect(() => {
+    controlsRef.current?.setSkin(skin);
+    const nc = nextRef.current;
+    if (nc) drawNextPreview(nc, nextPieceRef.current, skin);
+  }, [skin]);
 
   useImperativeHandle(ref, () => ({ restart: () => controlsRef.current?.restart() }), []);
 

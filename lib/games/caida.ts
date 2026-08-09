@@ -3,6 +3,8 @@
 // dentro de initCaida(); la UI (HUD, pausa, modal de fin, preview de la próxima
 // pieza) la pone React. El motor dibuja solo el tablero en el canvas principal.
 
+import type { SkinId } from "./skins";
+
 export interface NextPiece {
   type: number; // 1..8 (índice de color/pieza; 8 = tuerca N)
   shape: number[][]; // matriz de la próxima pieza
@@ -20,6 +22,7 @@ export interface CaidaControls {
   destroy: () => void; // detiene el loop y quita listeners
   setPaused: (paused: boolean) => void; // congela update; sigue dibujando
   restart: () => void; // reinicia la partida (init)
+  setSkin: (skin: SkinId) => void; // cambia la paleta en vivo (sin reiniciar)
 }
 
 // ── Dimensiones fijas (el escalado es solo CSS) ──────────────────────────────
@@ -29,21 +32,67 @@ const BLOCK = 30;
 const W = COLS * BLOCK; // 300
 const H = ROWS * BLOCK; // 600
 
-const GRID_LINE = "rgba(120, 180, 200, 0.10)";
+// ── Paleta por skin (solo colores del canvas; el chrome queda fuera) ─────────
+export interface CaidaPalette {
+  fondo: string; // fondo del tablero
+  grid: string; // líneas de la cuadrícula (decoración, no debe competir)
+  brillo: string; // highlight superior de cada bloque
+  piezas: (string | null)[]; // indexada 1..8 (el 0 no se dibuja)
+}
 
-// Paleta indexada 1..8 (idéntica al original). Exportada para que el preview de
-// React use la misma fuente de color que el tablero (sin duplicarla).
-export const CAIDA_COLORS: (string | null)[] = [
-  null,
-  "#4dd0e1", // I - cyan
-  "#ffd54f", // O - yellow
-  "#ba68c8", // T - purple
-  "#81c784", // S - green
-  "#e57373", // Z - red
-  "#90caf9", // J - pale blue
-  "#ffb74d", // L - orange
-  "#9e9e9e", // N - tuerca (gris metálico)
-];
+export const CAIDA_SKINS: Record<SkinId, CaidaPalette> = {
+  // Paleta original del port: pasteles Material sobre negro puro.
+  clasico: {
+    fondo: "#000000",
+    grid: "rgba(120, 180, 200, 0.10)",
+    brillo: "rgba(255, 255, 255, 0.12)",
+    piezas: [
+      null,
+      "#4dd0e1", // I - cyan
+      "#ffd54f", // O - yellow
+      "#ba68c8", // T - purple
+      "#81c784", // S - green
+      "#e57373", // Z - red
+      "#90caf9", // J - pale blue
+      "#ffb74d", // L - orange
+      "#9e9e9e", // N - tuerca (gris metálico)
+    ],
+  },
+  // Synthwave: siete tonos saturados bien separados sobre violeta profundo.
+  neon: {
+    fondo: "#0b0217",
+    grid: "rgba(0, 240, 255, 0.12)",
+    brillo: "rgba(255, 255, 255, 0.22)",
+    piezas: [
+      null,
+      "#00f0ff", // I - cian eléctrico
+      "#f5ff00", // O - amarillo ácido
+      "#c14dff", // T - violeta
+      "#39ff88", // S - verde neón
+      "#ff2d6f", // Z - rosa
+      "#3d7bff", // J - azul eléctrico
+      "#ff9e2d", // L - ámbar
+      "#c9c9d6", // N - tuerca (metal, sin saturación)
+    ],
+  },
+  // CRT de época: tonos de 8 bits apagados sobre negro cálido.
+  retro: {
+    fondo: "#0d0b06",
+    grid: "rgba(255, 176, 0, 0.10)",
+    brillo: "rgba(255, 240, 200, 0.12)",
+    piezas: [
+      null,
+      "#4fb3a5", // I - turquesa apagado
+      "#d9c84a", // O - amarillo mostaza
+      "#a86bb5", // T - púrpura polvoriento
+      "#6fae44", // S - verde oliva
+      "#cf4f4f", // Z - rojo ladrillo
+      "#5a7fc2", // J - azul acero
+      "#d1863f", // L - naranja quemado
+      "#a89f8c", // N - tuerca (gris cálido)
+    ],
+  },
+};
 
 const PIECES: (number[][] | null)[] = [
   null,
@@ -101,6 +150,7 @@ interface Piece {
 // ── Draw helpers puros (compartidos por el tablero y el preview) ──────────────
 function drawBlock(
   context: CanvasRenderingContext2D,
+  palette: CaidaPalette,
   x: number,
   y: number,
   colorIndex: number,
@@ -108,22 +158,28 @@ function drawBlock(
   alpha = 1,
 ) {
   if (!colorIndex) return;
-  const color = CAIDA_COLORS[colorIndex];
+  const color = palette.piezas[colorIndex];
   if (!color) return;
   context.globalAlpha = alpha;
   context.fillStyle = color;
   context.fillRect(x * size + 1, y * size + 1, size - 2, size - 2);
   // highlight superior
-  context.fillStyle = "rgba(255,255,255,0.12)";
+  context.fillStyle = palette.brillo;
   context.fillRect(x * size + 1, y * size + 1, size - 2, 4);
   context.globalAlpha = 1;
 }
 
 // Dibuja la próxima pieza centrada en un canvas de preview. Pura: la usa el
-// wrapper React (no reimplementa la paleta ni el estilo de bloque).
-export function drawNextPreview(canvas: HTMLCanvasElement, piece: NextPiece | null): void {
+// wrapper React (no reimplementa la paleta ni el estilo de bloque). El preview
+// es canvas de juego, así que también sigue la skin activa.
+export function drawNextPreview(
+  canvas: HTMLCanvasElement,
+  piece: NextPiece | null,
+  skin: SkinId = "clasico",
+): void {
   const ctx = canvas.getContext("2d");
   if (!ctx) return;
+  const palette = CAIDA_SKINS[skin];
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   if (!piece) return;
   const shape = piece.shape;
@@ -135,13 +191,21 @@ export function drawNextPreview(canvas: HTMLCanvasElement, piece: NextPiece | nu
   ctx.save();
   ctx.translate(padX, padY);
   for (let r = 0; r < shape.length; r++)
-    for (let c = 0; c < shape[r].length; c++) drawBlock(ctx, offX + c, offY + r, shape[r][c], nb);
+    for (let c = 0; c < shape[r].length; c++)
+      drawBlock(ctx, palette, offX + c, offY + r, shape[r][c], nb);
   ctx.restore();
 }
 
-export function initCaida(canvas: HTMLCanvasElement, handlers: CaidaHandlers): CaidaControls {
+export function initCaida(
+  canvas: HTMLCanvasElement,
+  handlers: CaidaHandlers,
+  options?: { skin?: SkinId },
+): CaidaControls {
   const ctx = canvas.getContext("2d");
   if (!ctx) throw new Error("No se pudo obtener el contexto 2D del canvas");
+
+  // Paleta activa: mutable para que setSkin() cambie los colores en vivo.
+  let palette: CaidaPalette = CAIDA_SKINS[options?.skin ?? "clasico"];
 
   // ── Estado (por instancia) ─────────────────────────────────────────────────
   let board: number[][] = [];
@@ -268,7 +332,7 @@ export function initCaida(canvas: HTMLCanvasElement, handlers: CaidaHandlers): C
 
   // ── Dibujo (solo el tablero) ───────────────────────────────────────────────
   function drawGrid() {
-    ctx!.strokeStyle = GRID_LINE;
+    ctx!.strokeStyle = palette.grid;
     ctx!.lineWidth = 0.5;
     for (let c = 1; c < COLS; c++) {
       ctx!.beginPath();
@@ -286,23 +350,26 @@ export function initCaida(canvas: HTMLCanvasElement, handlers: CaidaHandlers): C
 
   function draw() {
     ctx!.clearRect(0, 0, W, H);
+    // Fondo propio de la skin (en `clasico` es el mismo negro que ya ponía el CSS).
+    ctx!.fillStyle = palette.fondo;
+    ctx!.fillRect(0, 0, W, H);
     drawGrid();
 
     // tablero
     for (let r = 0; r < ROWS; r++)
-      for (let c = 0; c < COLS; c++) drawBlock(ctx!, c, r, board[r][c], BLOCK);
+      for (let c = 0; c < COLS; c++) drawBlock(ctx!, palette, c, r, board[r][c], BLOCK);
 
     // pieza fantasma (ghost)
     const gy = ghostY();
     for (let r = 0; r < current.shape.length; r++)
       for (let c = 0; c < current.shape[r].length; c++)
         if (current.shape[r][c])
-          drawBlock(ctx!, current.x + c, gy + r, current.shape[r][c], BLOCK, 0.2);
+          drawBlock(ctx!, palette, current.x + c, gy + r, current.shape[r][c], BLOCK, 0.2);
 
     // pieza actual
     for (let r = 0; r < current.shape.length; r++)
       for (let c = 0; c < current.shape[r].length; c++)
-        drawBlock(ctx!, current.x + c, current.y + r, current.shape[r][c], BLOCK);
+        drawBlock(ctx!, palette, current.x + c, current.y + r, current.shape[r][c], BLOCK);
   }
 
   function emitChanges() {
@@ -420,6 +487,9 @@ export function initCaida(canvas: HTMLCanvasElement, handlers: CaidaHandlers): C
       init();
       paused = false;
       lastTime = null;
+    },
+    setSkin(skin: SkinId) {
+      palette = CAIDA_SKINS[skin];
     },
   };
 }
