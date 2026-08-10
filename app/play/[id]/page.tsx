@@ -18,6 +18,7 @@ import { type User, useSession } from "../../session-provider";
 import AsteroidsGame, { type AsteroidsGameHandle } from "./asteroids-game";
 import BloqueBusterGame, { type BloqueBusterGameHandle } from "./bloque-buster-game";
 import CaidaGame, { type CaidaGameHandle } from "./caida-game";
+import FroggerGame, { type FroggerGameHandle } from "./frogger-game";
 import SerpentinaGame, { type SerpentinaGameHandle } from "./serpentina-game";
 import TouchControls from "./touch-controls";
 
@@ -34,6 +35,7 @@ export default function GamePlayer({ params }: { params: Promise<{ id: string }>
   if (game.id === "caida") return <CaidaPlayer game={game} />;
   if (game.id === "bloque-buster") return <BloqueBusterPlayer game={game} />;
   if (game.id === "serpentina") return <SerpentinaPlayer game={game} />;
+  if (game.id === "frogger") return <FroggerPlayer game={game} />;
   return <SimulatedPlayer game={game} />;
 }
 
@@ -163,8 +165,22 @@ function CaidaPlayer({ game }: { game: Game }) {
   const [over, setOver] = useState(false);
   const [saveState, setSaveState] = useState<SaveState>("idle");
   const [saveError, setSaveError] = useState("");
+  const [skin, setSkin] = useState<SkinId>(DEFAULT_SKIN);
 
   const playerName = user ? user.name : "INVITADO";
+
+  // Carga la skin persistida del juego al montar. Debe ser en un efecto (no en
+  // el estado inicial): localStorage solo existe en cliente y leerlo durante el
+  // render provocaría un mismatch de hidratación en el selector.
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- sincronización única con localStorage
+    setSkin(loadSkin(game.id));
+  }, [game.id]);
+
+  const changeSkin = (next: SkinId) => {
+    setSkin(next);
+    saveSkin(game.id, next);
+  };
 
   const handleSave = async () => {
     setSaveState("saving");
@@ -199,6 +215,8 @@ function CaidaPlayer({ game }: { game: Game }) {
         lines={lines}
         level={level}
         paused={paused}
+        skin={skin}
+        onSkinChange={changeSkin}
         onPause={() => setPaused((p) => !p)}
         onEnd={endGame}
         onExit={() => router.push(`/game/${game.id}`)}
@@ -209,6 +227,7 @@ function CaidaPlayer({ game }: { game: Game }) {
           <CaidaGame
             ref={gameRef}
             paused={paused}
+            skin={skin}
             onScore={setScore}
             onLines={setLines}
             onLevel={setLevel}
@@ -472,6 +491,119 @@ function SerpentinaPlayer({ game }: { game: Game }) {
   );
 }
 
+// ── Reproductor real: Frogger ────────────────────────────────────────────────
+function FroggerPlayer({ game }: { game: Game }) {
+  const router = useRouter();
+  const { user, saveScore } = useSession();
+  const gameRef = useRef<FroggerGameHandle>(null);
+
+  const [score, setScore] = useState(0);
+  const [lives, setLives] = useState(3);
+  const [level, setLevel] = useState(1);
+  const [paused, setPaused] = useState(false);
+  const [over, setOver] = useState(false);
+  const [saveState, setSaveState] = useState<SaveState>("idle");
+  const [saveError, setSaveError] = useState("");
+  const [skin, setSkin] = useState<SkinId>(DEFAULT_SKIN);
+
+  const playerName = user ? user.name : "INVITADO";
+
+  // Carga la skin persistida del juego al montar. Debe ser en un efecto (no en
+  // el estado inicial): localStorage solo existe en cliente y leerlo durante el
+  // render provocaría un mismatch de hidratación en el selector.
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- sincronización única con localStorage
+    setSkin(loadSkin(game.id));
+  }, [game.id]);
+
+  const changeSkin = (next: SkinId) => {
+    setSkin(next);
+    saveSkin(game.id, next);
+  };
+
+  const handleSave = async () => {
+    setSaveState("saving");
+    const res = await saveScore({ game: game.id, score });
+    if (res.ok) {
+      setSaveState("saved");
+    } else {
+      setSaveError(res.error ?? "No se pudo guardar. Inténtalo de nuevo.");
+      setSaveState("error");
+    }
+  };
+
+  // FIN: fuerza el cierre de partida con el score actual (congela el motor).
+  const endGame = () => {
+    setPaused(true);
+    setOver(true);
+  };
+
+  const restart = () => {
+    gameRef.current?.restart();
+    setPaused(false);
+    setOver(false);
+    setSaveState("idle");
+    setSaveError("");
+  };
+
+  return (
+    <div className="av-player fade-in">
+      <PlayerHud
+        playerName={playerName}
+        score={score}
+        lives={lives}
+        level={level}
+        paused={paused}
+        skin={skin}
+        onSkinChange={changeSkin}
+        onPause={() => setPaused((p) => !p)}
+        onEnd={endGame}
+        onExit={() => router.push(`/game/${game.id}`)}
+      />
+
+      <div className="crt">
+        <div className="crt-screen">
+          <FroggerGame
+            ref={gameRef}
+            paused={paused}
+            skin={skin}
+            onScore={setScore}
+            onLives={setLives}
+            onLevel={setLevel}
+            onGameOver={() => setOver(true)}
+          />
+          {paused && <PauseOverlay />}
+        </div>
+        <CrtBottom title={game.title} />
+      </div>
+
+      <div className="game-controls">
+        <div className="controls-legend">
+          <span className="keys">
+            <kbd>◄</kbd>
+            <kbd>►</kbd>
+            <kbd>▲</kbd>
+            <kbd>▼</kbd> SALTAR
+          </span>
+        </div>
+        <TouchControls game="frogger" disabled={paused || over} />
+      </div>
+
+      {over && (
+        <EndModal
+          score={score}
+          user={user}
+          saveState={saveState}
+          saveError={saveError}
+          onSave={handleSave}
+          onRestart={restart}
+          onExit={() => router.push("/games")}
+        />
+      )}
+    </div>
+  );
+}
+
 // ── Reproductor simulado (resto de juegos, sin cambios de comportamiento) ──────
 function SimulatedPlayer({ game }: { game: Game }) {
   const router = useRouter();
@@ -598,7 +730,7 @@ function PlayerHud({
       : "♥ ".repeat(lives ?? 0).trim() || "—";
   return (
     <div className="player-hud">
-      <div style={{ display: "flex", gap: 24, flexWrap: "wrap" }}>
+      <div className="hud-stats">
         <div className="hud-stat">
           <div className="l">Jugador</div>
           <div className="v" style={{ color: "var(--ink)" }}>

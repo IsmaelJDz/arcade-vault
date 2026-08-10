@@ -15,6 +15,7 @@ No test runner is configured yet. Verify with `npm run build` + `npm run lint`.
 - Usa siempre **/frontend-design** para diseñar el frontend.
 - **/add-game `<carpeta>`** + **/add-game-impl `NN`** — portar un juego nuevo (ver Workflow).
 - Spec Driven Design vía **/spec** y **/spec-impl** para features generales.
+- **/spec-impl-game `NN`** — igual que `/spec-impl` pero al terminar el plan dispara en secuencia `skin-designer` y luego `mobile-porter`.
 
 ## Agents
 
