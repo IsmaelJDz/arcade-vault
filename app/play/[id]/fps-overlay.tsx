@@ -2,6 +2,8 @@
 
 import { useEffect, useRef, useState } from "react";
 
+import { disableFrameProbe, enableFrameProbe, readFrameStats } from "@/lib/games/perf";
+
 // Umbral de "frame largo": a 60 fps el presupuesto es 16.7 ms; por encima de 20
 // ms el frame ya se comió su turno y el input se lee tarde.
 const LONG_FRAME_MS = 20;
@@ -18,6 +20,16 @@ const OUTLIER_MS = 1000;
  * Overlay de medición para los criterios de rendimiento de la spec 12.
  * Se activa solo con `?debug=fps` y escribe en el DOM por `ref`: un `setState`
  * por frame reintroduciría el coste que la spec elimina y falsearía la medida.
+ *
+ * Reporta **dos** métricas distintas y hay que no confundirlas:
+ *
+ * - `FPS` / `>20ms` salen del intervalo entre callbacks de `rAF`. Con vsync ese
+ *   intervalo está clavado en el periodo de la pantalla (~16.7 ms a 60 Hz) haga
+ *   el juego el trabajo que haga, así que **no** sirve para ver si una
+ *   optimización funcionó. Sirve para ver el cap de 60 fps y los frames caídos.
+ * - `work` sale de `lib/games/perf.ts`, que cronometra el interior del loop del
+ *   motor (`update()` + `draw()`). Esta es la cifra que baja al optimizar y la
+ *   que usan los criterios de aceptación de la spec.
  */
 export default function FpsOverlay() {
   const [enabled, setEnabled] = useState(false);
@@ -36,6 +48,10 @@ export default function FpsOverlay() {
     if (!enabled) return;
     const box = boxRef.current;
     if (!box) return;
+
+    // Enciende el cronómetro de los motores. Hasta esta llamada, `frameStart()`
+    // y `frameEnd()` dentro de los 5 loops son un `if` sobre un booleano.
+    enableFrameProbe();
 
     const bins = new Uint32Array(BINS + 1);
     let frames = 0;
@@ -77,9 +93,13 @@ export default function FpsOverlay() {
         const fps = (windowFrames * 1000) / elapsed;
         const minutes = (now - started) / 60000;
         const perMin = minutes > 0 ? longFrames / minutes : 0;
+        const work = readFrameStats();
         box.textContent =
           `FPS ${fps.toFixed(1)}\n` +
-          `p95 ${p95().toFixed(2)} ms\n` +
+          `int p95 ${p95().toFixed(2)} ms\n` +
+          `work ${work.avgMs.toFixed(2)} ms\n` +
+          `work p95 ${work.p95Ms.toFixed(2)} ms\n` +
+          `work max ${work.maxMs.toFixed(2)} ms\n` +
           `>${LONG_FRAME_MS}ms ${longFrames} (${perMin.toFixed(1)}/min)\n` +
           `frames ${frames}`;
         windowFrames = 0;
@@ -88,7 +108,10 @@ export default function FpsOverlay() {
     };
 
     rafId = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(rafId);
+    return () => {
+      cancelAnimationFrame(rafId);
+      disableFrameProbe();
+    };
   }, [enabled]);
 
   if (!enabled) return null;

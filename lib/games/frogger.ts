@@ -12,6 +12,7 @@
 //   8 – 12   carretera (coches y camiones)
 //   13       base de inicio
 
+import { frameEnd, frameStart } from "./perf";
 import type { SkinId } from "./skins";
 
 export interface FroggerHandlers {
@@ -818,6 +819,7 @@ export function initFrogger(
   function loop(ts: number) {
     if (destroyed) return;
     rafId = requestAnimationFrame(loop);
+    frameStart();
     // dt acotado a 50 ms para que un cambio de pestaña no teletransporte nada.
     const dtMs = lastTime === null ? 0 : Math.min(ts - lastTime, 50);
     lastTime = ts;
@@ -827,6 +829,7 @@ export function initFrogger(
     }
     // `paused` congela update() pero el canvas se sigue dibujando.
     draw();
+    frameEnd();
   }
 
   // ── Arranque ───────────────────────────────────────────────────────────────

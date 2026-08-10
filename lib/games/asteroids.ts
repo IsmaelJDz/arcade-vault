@@ -2,6 +2,7 @@
 // a un módulo TS sin globals ni acceso al DOM al importar. Todo el estado vive
 // dentro de initAsteroids(); la UI (HUD, pausa, modal de fin) la pone React.
 
+import { frameEnd, frameStart } from "./perf";
 import type { SkinId } from "./skins";
 
 export interface AsteroidsHandlers {
@@ -103,7 +104,7 @@ export function initAsteroids(
 
   // Paleta activa: mutable para que setSkin() cambie los colores en vivo,
   // sin reiniciar la partida (el draw-loop la lee cada frame).
-   
+
   let palette: AsteroidsPalette = ASTEROIDS_SKINS[options?.skin ?? "clasico"];
 
   // Glow acotado al trazo de un elemento: shadowColor siempre derivado del color.
@@ -662,6 +663,7 @@ export function initAsteroids(
   function loop(ts: number) {
     if (destroyed) return;
     rafId = requestAnimationFrame(loop);
+    frameStart();
     const dt = lastTime === null ? 0 : Math.min((ts - lastTime) / 1000, 0.05);
     lastTime = ts;
     if (!paused) {
@@ -669,6 +671,7 @@ export function initAsteroids(
       emitChanges();
     }
     draw();
+    frameEnd();
   }
 
   // ── Arranque ───────────────────────────────────────────────────────────────

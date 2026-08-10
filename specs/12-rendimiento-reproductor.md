@@ -91,7 +91,11 @@ Cada paso deja la app compilando y los 5 juegos jugables.
 
 1. **Overlay de FPS de debug.** Crear `app/play/[id]/fps-overlay.tsx` (`"use client"`): un `rAF` propio que acumula fps instantáneos, media móvil de 1 s, p95 de ms/frame y contador de frames largos (>20 ms), escritos con `ref.textContent`. Se monta en los 5 `*Player` de `page.tsx` y se activa leyendo `window.location.search` dentro de un `useEffect` — **no** con `useSearchParams`, que obligaría a un `<Suspense>` y forzaría render en cliente de la ruta entera. **Prueba:** `/play/frogger?debug=fps` muestra el contador; sin el param no se monta nada.
 
-2. **Baseline medido.** Con el overlay puesto, anotar en la spec las cifras de partida de los 5 juegos (fps medio, p95 de ms/frame, frames largos por minuto) en el equipo del usuario. **Prueba:** las cifras quedan escritas en la sección "Baseline" de la spec.
+2a. **Probe de trabajo por frame.** El overlay del paso 1 mide el **intervalo** entre callbacks de `rAF`, que con vsync está clavado en el periodo de la pantalla (~16.7 ms a 60 Hz) haga el motor el trabajo que haga: es insensible a todo lo que optimizan los pasos 3-13. Crear `lib/games/perf.ts` — probe singleton apagado por defecto (`enableFrameProbe`, `frameStart`, `frameEnd`, `readFrameStats`, `resetFrameProbe`) con el mismo histograma de bins de 0.25 ms que usa el overlay — y envolver el cuerpo del loop de los 5 motores con `frameStart()`/`frameEnd()`, sin tocar ninguna lógica. El overlay lo enciende junto a `?debug=fps` y añade `work` / `work p95` / `work max` a su texto. Cuando el paso 7 cree `createGameLoop`, esas dos llamadas se absorben ahí y desaparecen de los motores. **Prueba:** con `?debug=fps` el overlay muestra un `work` plausible por debajo de 16.7 ms; sin el param, el probe sigue deshabilitado y no llama a `performance.now()`.
+
+    **Limitación que hay que tener presente al leer las cifras:** `performance.now()` alrededor de `update()+draw()` mide el coste de JS y de grabar los comandos de canvas, **no** el rasterizado, que Chrome hace después y en otro proceso. Las optimizaciones que descargan sobre todo al rasterizador (quitar `shadowBlur`, paso 13) quedan subestimadas en `work`. Por eso el baseline lleva una columna medida con **CPU throttling 4x de DevTools**, donde el raster sí entra en el presupuesto del frame.
+
+2. **Baseline medido.** Con el probe puesto, anotar en la tabla "Baseline" las cifras de partida de los 5 juegos, jugando ~60 s por celda, en **dos pantallas** (un monitor externo de 60 Hz y la Liquid Retina XDR interna a 120 Hz — la causa B solo se manifiesta en la segunda) y en **dos condiciones de CPU** (sin throttling y con 4x de DevTools). **Prueba:** las cifras quedan escritas en la sección "Baseline" de la spec, con equipo, refresco y navegador anotados.
 
 3. **Scanlines del CRT sin blend.** En `globals.css:1130` quitar `mix-blend-mode: multiply` de `.crt-screen::after`. El resultado es **matemáticamente idéntico**: mezclar en multiply con negro puro a α=0.18 da `0.82 × fondo`, exactamente lo mismo que componer negro normal a α=0.18. Añadir `isolation: isolate` a `.crt-screen` y `contain: paint`. **Prueba:** captura antes/después del CRT sin diferencia de píxeles; el overlay marca menos ms/frame.
 
@@ -123,15 +127,36 @@ Cada paso deja la app compilando y los 5 juegos jugables.
 
 Se rellena en el paso 2, antes de optimizar nada. Sin estas cifras los criterios de aceptación de rendimiento no son verificables.
 
-| Juego           | fps medio | p95 ms/frame | Frames >20 ms por minuto |
-| --------------- | --------- | ------------ | ------------------------ |
-| `frogger`       | —         | —            | —                        |
-| `rocas`         | —         | —            | —                        |
-| `caida`         | —         | —            | —                        |
-| `bloque-buster` | —         | —            | —                        |
-| `serpentina`    | —         | —            | —                        |
+**La columna que importa es `work p95`, no `int p95`.** El intervalo entre frames (`int`) está limitado por abajo por el periodo de vsync: en una pantalla de 60 Hz ninguna optimización puede bajarlo de 16.7 ms, así que un criterio expresado sobre esa cifra es inalcanzable por construcción. `work` mide el interior de `update()+draw()` y sí responde.
 
-Equipo y condiciones de medida (modelo, refresco de pantalla, navegador, build de producción) se anotan junto a la tabla.
+**Sin throttling** (build de producción, ~60 s por celda):
+
+| Juego           | Pantalla | FPS | int p95 | work medio | work p95 | work max | >20 ms/min |
+| --------------- | -------- | --- | ------- | ---------- | -------- | -------- | ---------- |
+| `frogger`       | 60 Hz    | —   | —       | —          | —        | —        | —          |
+| `frogger`       | XDR 120  | —   | —       | —          | —        | —        | —          |
+| `rocas`         | 60 Hz    | —   | —       | —          | —        | —        | —          |
+| `rocas`         | XDR 120  | —   | —       | —          | —        | —        | —          |
+| `caida`         | 60 Hz    | —   | —       | —          | —        | —        | —          |
+| `caida`         | XDR 120  | —   | —       | —          | —        | —        | —          |
+| `bloque-buster` | 60 Hz    | —   | —       | —          | —        | —        | —          |
+| `bloque-buster` | XDR 120  | —   | —       | —          | —        | —        | —          |
+| `serpentina`    | 60 Hz    | —   | —       | —          | —        | —        | —          |
+| `serpentina`    | XDR 120  | —   | —       | —          | —        | —        | —          |
+
+**Con CPU throttling 4x** (DevTools → Performance → CPU 4x slowdown, pantalla de 60 Hz). Sin esta condición las optimizaciones de rasterizado del paso 13 no son observables en un M3 Pro:
+
+| Juego           | FPS | work p95 @4x | >20 ms/min |
+| --------------- | --- | ------------ | ---------- |
+| `frogger`       | —   | —            | —          |
+| `rocas`         | —   | —            | —          |
+| `caida`         | —   | —            | —          |
+| `bloque-buster` | —   | —            | —          |
+| `serpentina`    | —   | —            | —          |
+
+Equipo y condiciones de medida (modelo, refresco real de cada pantalla, navegador, build de producción) se anotan junto a la tabla.
+
+**Medición parcial previa** (2026-08-09, antes de existir el probe): `frogger` en monitor externo de 60 Hz marcó FPS 60.0, `int p95` 17.50 ms, 1 frame >20 ms (0.9/min). Confirma que el motor ya clava vsync en ese equipo y que la métrica de intervalo no deja margen que recortar; se conserva como contexto, no como baseline.
 
 ---
 
@@ -142,14 +167,16 @@ Equipo y condiciones de medida (modelo, refresco de pantalla, navegador, build d
 - [ ] `npm run build` y `npm run lint` sin errores.
 - [ ] Los 5 motores importan `lib/games/engine.ts` y ninguno conserva su propio `requestAnimationFrame`.
 - [ ] Ningún motor usa `shadowBlur` en el camino de dibujo por frame.
-- [ ] Sin el query param `?debug=fps`, el overlay no se monta ni ejecuta ningún `rAF`.
+- [ ] Sin el query param `?debug=fps`, el overlay no se monta ni ejecuta ningún `rAF`, y `lib/games/perf.ts` no llama a `performance.now()` en ningún frame.
 
 **Rendimiento (medido con el overlay, build de producción)**
 
-- [ ] En una pantalla de 120 Hz, los 5 juegos marcan ~60 fps y no más: el cap está activo.
-- [ ] El p95 de ms/frame de `frogger` baja al menos un 40 % respecto al baseline del paso 2.
-- [ ] El p95 de ms/frame de `rocas`, `bloque-buster` y `serpentina` baja al menos un 30 % respecto al baseline.
-- [ ] Los 5 juegos registran menos frames >20 ms por minuto que en el baseline.
+Todos los umbrales se expresan sobre `work` —el interior de `update()+draw()`— y no sobre el intervalo entre frames, que con vsync no puede bajar del periodo de la pantalla y por tanto no admite un umbral porcentual.
+
+- [ ] En la pantalla XDR interna a 120 Hz, los 5 juegos marcan ~60 fps y no ~120: el cap del paso 7 está activo.
+- [ ] El **work p95** de `frogger` baja al menos un 40 % respecto al baseline del paso 2 (pasos 11-12).
+- [ ] El **work p95 @4x CPU** de `rocas`, `bloque-buster` y `serpentina` baja al menos un 30 % respecto al baseline (paso 13).
+- [ ] Los 5 juegos registran menos frames >20 ms por minuto que en el baseline, en las dos pantallas.
 - [ ] `grep -n "mix-blend-mode" app/globals.css` no devuelve ninguna coincidencia en `.av-bg::after` ni en `.crt-screen::after`.
 
 **Sin regresión visual**
@@ -217,6 +244,7 @@ Cada uno de ellos, si llega, va en su propia spec.
 **Nuevos**
 
 - `lib/games/engine.ts` — loop compartido con cap a 60 fps + contexto 2D opaco.
+- `lib/games/perf.ts` — probe de trabajo por frame, apagado salvo con `?debug=fps`.
 - `app/play/[id]/fps-overlay.tsx` — overlay de debug activado por `?debug=fps`.
 
 **Modificados**
@@ -240,8 +268,8 @@ Cada uno de ellos, si llega, va en su propia spec.
 
 1. `npm run build && npm run lint` — ambos verdes.
 2. `npm run build && npm start` (build de producción, **no** `next dev`: el modo desarrollo distorsiona la medición).
-3. Abrir `/play/frogger?debug=fps` y jugar una ronda completa; anotar fps medio, p95 y frames largos. Repetir en `/play/rocas`, `/play/caida`, `/play/bloque-buster` y `/play/serpentina`.
-4. Comparar contra la tabla de baseline del paso 2 y comprobar los umbrales de los criterios de aceptación.
+3. Abrir `/play/frogger?debug=fps` y jugar una ronda completa; anotar FPS, `work medio`, `work p95` y frames largos. Repetir en `/play/rocas`, `/play/caida`, `/play/bloque-buster` y `/play/serpentina`. Repetir la vuelta con CPU throttling 4x y en la pantalla XDR interna a 120 Hz.
+4. Comparar contra las tablas de baseline del paso 2 y comprobar los umbrales de los criterios de aceptación. Los umbrales porcentuales se leen sobre `work`, nunca sobre `int p95`.
 5. En cada juego, recorrer las 3 skins (CLÁSICO / NEÓN / RETRO) verificando que el cambio en caliente actualiza fondo, sprites y glow.
 6. Comparar capturas antes/después del CRT y del fondo de `/games` para descartar regresión visual.
 7. En emulación táctil, comprobar que el gamepad de las specs 10/11 sigue respondiendo igual en los 5 juegos.

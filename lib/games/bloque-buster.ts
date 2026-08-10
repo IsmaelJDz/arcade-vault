@@ -4,6 +4,7 @@
 // initBloqueBuster(); la UI (HUD, pausa, modal de fin) la pone React. Los sprites
 // del PNG original se redibujan en estilo vector-neón; se conservan los 2 sonidos.
 
+import { frameEnd, frameStart } from "./perf";
 import type { SkinId } from "./skins";
 
 export interface BloqueBusterHandlers {
@@ -470,6 +471,7 @@ export function initBloqueBuster(
   function loop(ts: number) {
     if (destroyed) return;
     rafId = requestAnimationFrame(loop);
+    frameStart();
     const dt = lastTime === null ? 0 : Math.min((ts - lastTime) / 1000, 0.05);
     lastTime = ts;
     if (!paused) {
@@ -477,6 +479,7 @@ export function initBloqueBuster(
       emitChanges();
     }
     draw();
+    frameEnd();
   }
 
   // ── Arranque ───────────────────────────────────────────────────────────────
