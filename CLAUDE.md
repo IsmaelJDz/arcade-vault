@@ -15,7 +15,7 @@ No test runner is configured yet. Verify with `npm run build` + `npm run lint`.
 - Usa siempre **/frontend-design** para diseñar el frontend.
 - **/add-game `<carpeta>`** + **/add-game-impl `NN`** — portar un juego nuevo (ver Workflow).
 - Spec Driven Design vía **/spec** y **/spec-impl** para features generales.
-- **/spec-impl-game `NN`** — igual que `/spec-impl` pero al terminar el plan dispara en secuencia `skin-designer` y luego `mobile-porter`.
+- **/spec-impl-game `NN`** — igual que `/spec-impl` pero al terminar el plan dispara en secuencia `skin-designer`, luego `mobile-porter` y luego `game-performance-booster`.
 
 ## Agents
 
@@ -23,6 +23,7 @@ No test runner is configured yet. Verify with `npm run build` + `npm run lint`.
 - **game-jam** (`.claude/agents/game-jam.md`) — dado un tema de jam, inventa un juego original y genera sus 3 specs Draft (`01-game-design.md`, `02-engine.md`, `03-integration.md`) en `specs/game-jam/<game-id>/` de forma automática. Úsalo cuando se dé un tema de game jam.
 - **skin-designer** (`.claude/agents/skin-designer.md`) — audita que todos los juegos reales tengan las skins `clasico`/`neon`/`retro` (solo paleta del canvas) con selector persistente en el reproductor, e implementa lo que falte con contraste validado sobre fondo oscuro. Úsalo al agregar un juego o para revisar/crear skins. Memoria en `.claude/agents/memory/skin-designer.md`.
 - **mobile-porter** (`.claude/agents/mobile-porter.md`) — audita e implementa mejoras responsive para que la app se vea bien en desktop y móvil (análisis estático de `globals.css` + DOM de las rutas, referencia `specs/10-controles-tactiles.md`). Úsalo al agregar un juego, cambiar el layout del reproductor o revisar el diseño móvil. Memoria en `.claude/agents/memory/mobile-porter.md`.
+- **game-performance-booster** (`.claude/agents/game-performance-booster.md`) — dado el slug de un juego, audita e implementa el rendimiento por frame de su motor (loop compartido `lib/games/engine.ts` con cap a 60 fps, contexto 2D opaco, `dt` normalizado contra `1000/60`, sin `shadowBlur` por trazo, fondo y sprites pre-renderizados con cachés invalidadas en `setSkin`), según `specs/12-rendimiento-reproductor.md`. Úsalo al agregar un juego o cuando se reporte input lag o consumo de CPU/GPU en el reproductor. Memoria en `.claude/agents/memory/game-performance-booster.md`.
 
 ## Product
 
