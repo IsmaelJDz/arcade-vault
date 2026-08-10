@@ -18,6 +18,7 @@ import { type User, useSession } from "../../session-provider";
 import AsteroidsGame, { type AsteroidsGameHandle } from "./asteroids-game";
 import BloqueBusterGame, { type BloqueBusterGameHandle } from "./bloque-buster-game";
 import CaidaGame, { type CaidaGameHandle } from "./caida-game";
+import FpsOverlay from "./fps-overlay";
 import FroggerGame, { type FroggerGameHandle } from "./frogger-game";
 import SerpentinaGame, { type SerpentinaGameHandle } from "./serpentina-game";
 import TouchControls from "./touch-controls";
@@ -120,6 +121,7 @@ function AsteroidsPlayer({ game }: { game: Game }) {
             onLevel={setLevel}
             onGameOver={() => setOver(true)}
           />
+          <FpsOverlay />
           {paused && <PauseOverlay />}
         </div>
         <CrtBottom title={game.title} />
@@ -233,6 +235,7 @@ function CaidaPlayer({ game }: { game: Game }) {
             onLevel={setLevel}
             onGameOver={() => setOver(true)}
           />
+          <FpsOverlay />
           {paused && <PauseOverlay />}
         </div>
         <CrtBottom title={game.title} />
@@ -348,6 +351,7 @@ function BloqueBusterPlayer({ game }: { game: Game }) {
             onLevel={setLevel}
             onGameOver={() => setOver(true)}
           />
+          <FpsOverlay />
           {paused && <PauseOverlay />}
         </div>
         <CrtBottom title={game.title} />
@@ -459,6 +463,7 @@ function SerpentinaPlayer({ game }: { game: Game }) {
             onLevel={setLevel}
             onGameOver={() => setOver(true)}
           />
+          <FpsOverlay />
           {paused && <PauseOverlay />}
         </div>
         <CrtBottom title={game.title} />
@@ -572,6 +577,7 @@ function FroggerPlayer({ game }: { game: Game }) {
             onLevel={setLevel}
             onGameOver={() => setOver(true)}
           />
+          <FpsOverlay />
           {paused && <PauseOverlay />}
         </div>
         <CrtBottom title={game.title} />

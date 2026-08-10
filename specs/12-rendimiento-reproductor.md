@@ -1,6 +1,6 @@
 # SPEC 12 — Rendimiento del reproductor y de los motores
 
-> **Estado:** Borrador
+> **Estado:** Aprobado
 > **Depende de:** `05-asteroids-game.md`, `07-caida-game.md`, `08-bloque-buster-game.md`, `09-serpentina-game.md`, `10-controles-tactiles.md`, `11-gamepad-mk2-apariencia.md`, `game-jam/frogger/*`
 > **Fecha:** 2026-08-09
 > **Objetivo:** Eliminar el input lag y el consumo excesivo de CPU/GPU en `/play/[id]` recortando el trabajo desperdiciado por frame en el chrome CSS y en los 5 motores canvas, sin cambiar el aspecto visual.
