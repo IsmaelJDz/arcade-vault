@@ -3,6 +3,7 @@
 // dentro de initCaida(); la UI (HUD, pausa, modal de fin, preview de la próxima
 // pieza) la pone React. El motor dibuja solo el tablero en el canvas principal.
 
+import { frameEnd, frameStart } from "./perf";
 import type { SkinId } from "./skins";
 
 export interface NextPiece {
@@ -458,6 +459,7 @@ export function initCaida(
   function loop(ts: number) {
     if (destroyed) return;
     rafId = requestAnimationFrame(loop);
+    frameStart();
     const dtMs = lastTime === null ? 0 : Math.min(ts - lastTime, 100);
     lastTime = ts;
     if (!paused) {
@@ -465,6 +467,7 @@ export function initCaida(
       emitChanges();
     }
     draw();
+    frameEnd();
   }
 
   // ── Arranque ───────────────────────────────────────────────────────────────

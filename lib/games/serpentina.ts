@@ -4,6 +4,7 @@
 // initSerpentina(), nada toca el DOM al importar, y la UI (HUD, pausa, modal de
 // fin) la pone React. Es el primer motor del repo que usa drawImage.
 
+import { frameEnd, frameStart } from "./perf";
 import type { SkinId } from "./skins";
 
 export interface SerpentinaHandlers {
@@ -335,6 +336,7 @@ export function initSerpentina(
   function loop(ts: number) {
     if (destroyed) return;
     rafId = requestAnimationFrame(loop);
+    frameStart();
     const dt = lastTime === null ? 0 : Math.min((ts - lastTime) / 1000, 0.05);
     lastTime = ts;
     if (!paused) {
@@ -347,6 +349,7 @@ export function initSerpentina(
       emitChanges();
     }
     draw();
+    frameEnd();
   }
 
   // ── Arranque ───────────────────────────────────────────────────────────────
