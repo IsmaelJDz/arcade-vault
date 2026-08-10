@@ -1,6 +1,6 @@
 ---
 name: spec-impl-game
-description: Implementa una spec aprobada igual que /spec-impl (valida que el estado signifique "Approved", crea la rama spec-NN-slug e implementa paso a paso pausando tras cada paso) y, al terminar el plan, dispara en secuencia los agentes skin-designer y luego mobile-porter para dejar skins y responsive verificados.
+description: Implementa una spec aprobada igual que /spec-impl (valida que el estado signifique "Approved", crea la rama spec-NN-slug e implementa paso a paso pausando tras cada paso) y, al terminar el plan, dispara en secuencia los agentes skin-designer, mobile-porter y game-performance-booster para dejar skins, responsive y rendimiento verificados.
 disable-model-invocation: true
 argument-hint: <NN-slug>
 allowed-tools: Bash(git status:*), Bash(git branch:*), Bash(git checkout:*), Bash(git add:*), Bash(cat:*), Bash(ls:*), Bash(npm run build:*), Bash(npm run lint:*)
@@ -10,8 +10,8 @@ allowed-tools: Bash(git status:*), Bash(git branch:*), Bash(git checkout:*), Bas
 
 Mismo flujo que `/spec-impl` (identificar spec → validar estado → crear rama → implementar paso a
 paso con pausas) y, al completar el plan, una **Fase 5** que lanza en secuencia los agentes
-`skin-designer` y `mobile-porter` del repo para dejar skins y responsive verificados antes de cerrar
-la rama.
+`skin-designer`, `mobile-porter` y `game-performance-booster` del repo para dejar skins, responsive
+y rendimiento verificados antes de cerrar la rama.
 
 ## Contexto de sesión
 
@@ -181,12 +181,12 @@ implementes en esta rama.
 
 ```
 ✅ Todos los pasos del plan están implementados.
-Lanzando pulido automático: skin-designer → mobile-porter.
+Lanzando pulido automático: skin-designer → mobile-porter → game-performance-booster.
 ```
 
 ---
 
-### Fase 5 — Pulido automático (skin-designer → mobile-porter)
+### Fase 5 — Pulido automático (skin-designer → mobile-porter → game-performance-booster)
 
 Esta fase es **automática y secuencial**: no pidas confirmación entre agentes.
 
@@ -206,17 +206,27 @@ Esta fase es **automática y secuencial**: no pidas confirmación entre agentes.
    cambió skin-designer (archivos y hallazgos), para que audite responsive sobre el código ya
    modificado.
 
-3. **Nunca los lances en paralelo ni en el mismo mensaje** — ambos pueden editar `app/globals.css`
-   y mobile-porter debe ver el resultado de skin-designer.
+3. **Lanza `game-performance-booster`** (`subagent_type: game-performance-booster`,
+   `run_in_background: false`) solo cuando mobile-porter haya terminado. Pásale el **slug del
+   juego** (es su entrada principal) más el contexto acumulado: la spec implementada, los archivos
+   de la Fase 4 y lo que cambiaron los dos agentes anteriores. La instrucción: auditar el Estándar
+   de rendimiento de `specs/12-rendimiento-reproductor.md` e **implementar** lo que falte (loop
+   compartido con cap a 60 fps, contexto opaco, `dt` normalizado, sin `shadowBlur` por trazo,
+   pre-renderizado con cachés invalidadas en `setSkin`) hasta dejar build y lint verdes.
 
-4. Si un agente reporta un pendiente `requiere-spec`, **no lo implementes aquí**: repórtalo como
+   Si la spec no toca ningún juego concreto, **sáltate este agente** y dilo en el resumen.
+
+4. **Nunca los lances en paralelo ni en el mismo mensaje** — los tres pueden editar
+   `app/globals.css`, y cada uno debe ver el resultado del anterior.
+
+5. Si un agente reporta un pendiente `requiere-spec`, **no lo implementes aquí**: repórtalo como
    pendiente para una spec nueva.
 
-5. Cierra con un resumen combinado: hallazgos de cada agente, archivos que tocó cada uno, resultado
+6. Cierra con un resumen combinado: hallazgos de cada agente, archivos que tocó cada uno, resultado
    de `npm run build` / `npm run lint`, y pendientes `requiere-spec`. Termina con:
 
    ```
-   ✅ Plan implementado y pulido (skins + responsive).
+   ✅ Plan implementado y pulido (skins + responsive + rendimiento).
 
    Siguiente: verifica los criterios de aceptación uno por uno.
    Si todos pasan, cambia el estado de la spec a "Implementado" y haz el commit final antes de mergear.
@@ -243,7 +253,8 @@ Esta fase es **automática y secuencial**: no pidas confirmación entre agentes.
   Fase 2 → Lee el estado → "Approved" → ✅ continúa
   Fase 3 → git checkout -b spec-11-gamepad-mk2; muestra objetivo/alcance/plan/criterios
   Fase 4 → Implementa paso a paso con pausas para revisar el diff
-  Fase 5 → Agent(skin-designer) → espera reporte → Agent(mobile-porter) → resumen combinado
+  Fase 5 → Agent(skin-designer) → espera reporte → Agent(mobile-porter) → espera reporte
+           → Agent(game-performance-booster, slug del juego) → resumen combinado
            Termina recordando verificar criterios y marcar la spec "Implementado".
 
 /spec-impl-game 12-powerups  (estado: Draft / Borrador)
